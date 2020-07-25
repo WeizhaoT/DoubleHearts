@@ -7,13 +7,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Table objects represent a Blackjack table that players can join.
+ * Table objects represent a table that players can join.
  *
- * @author Jordan Segalman
+ * @author Weizhao Tang
  */
 
 public class Table implements Runnable {
-    public static final int tradeOrder[] = new int[] { 2, 3, 0, 1 };
+    public static final int tradeOrder[] = new int[] { 1, 2, 3, 0 };
     public static final int tradeSize = 3;
 
     private static final int lastRoundDelay = 800;
@@ -27,7 +27,7 @@ public class Table implements Runnable {
     private final Thread[] playerThreads = new Thread[4];
     private final int[] avtIndices;
     private final String[] names;
-    private final int numberOfDecks; // number of decks in shoe
+    private final int numberOfDecks = 2; // number of decks in shoe
 
     private final AtomicBoolean[] isReady = new AtomicBoolean[4];
 
@@ -50,8 +50,7 @@ public class Table implements Runnable {
      * Constructor for Table object.
      */
 
-    public Table(final int numberOfDecks) {
-        this.numberOfDecks = numberOfDecks;
+    public Table() {
         seats = new Player[4];
         names = new String[4];
         avtIndices = new int[] { -1, -1, -1, -1 };

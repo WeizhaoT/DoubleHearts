@@ -5,17 +5,13 @@ import java.net.Socket;
 /**
  * Server objects allow clients to connect to play Blackjack as a new player.
  *
- * @author Jordan Segalman
+ * @author Weizhao Tang
  */
 
 public class Server {
     private static final int DEFAULT_PORT = 23366; // default server port
-    private static final int DEFAULT_PLAYERS_PER_TABLE = 4; // default number of players per table
-    private static final int DEFAULT_NUMBER_OF_DECKS = 2; // default number of decks in shoe
 
     private final int serverPort; // server port
-    private final int playersPerTable; // number of players per table
-    private final int numberOfDecks; // number of decks in shoe
 
     public static final String SEND_PREFIX = "SERVERMESSAGE";
     public static final String SEND_DELIM = "==";
@@ -27,19 +23,11 @@ public class Server {
     /**
      * Constructor for Server object.
      *
-     * @param serverPort                Server port
-     * @param playersPerTable           Number of players per table
-     * @param startingMoney             Amount of money players start with
-     * @param minimumBet                Minimum player bet
-     * @param numberOfDecks             Number of decks in shoe
-     * @param minimumCardsBeforeShuffle Minimum number of cards remaining before
-     *                                  shuffling the shoe
+     * @param serverPort Server port
      */
 
-    public Server(final int serverPort, final int playersPerTable, final int numberOfDecks) {
+    public Server(final int serverPort) {
         this.serverPort = serverPort;
-        this.playersPerTable = playersPerTable;
-        this.numberOfDecks = numberOfDecks;
     }
 
     /**
@@ -47,8 +35,7 @@ public class Server {
      */
 
     public void start() {
-        System.out.println("Starting Blackjack server\nServer port: " + serverPort + "\nPlayers per table: "
-                + playersPerTable + "\nNumber of decks: " + numberOfDecks);
+        System.out.println("Starting Blackjack server\nServer port: " + serverPort);
         ServerSocket serverSocket = null;
         try {
             System.out.println("Creating server socket");
@@ -59,7 +46,7 @@ public class Server {
         }
         try {
             System.out.println("Listening on port " + serverPort);
-            final Table newTable = new Table(numberOfDecks);
+            final Table newTable = new Table();
             final Thread newTableThread = new Thread(newTable);
             newTable.setTabThread(newTableThread);
             newTableThread.start();
@@ -87,8 +74,6 @@ public class Server {
 
     public static void main(final String[] args) {
         int serverPort = DEFAULT_PORT;
-        final int playersPerTable = DEFAULT_PLAYERS_PER_TABLE;
-        final int numberOfDecks = DEFAULT_NUMBER_OF_DECKS;
 
         for (int i = 0; i < args.length; i += 2) {
             final String option = args[i];
@@ -127,7 +112,7 @@ public class Server {
                     break;
             }
         }
-        final Server Server = new Server(serverPort, playersPerTable, numberOfDecks);
+        final Server Server = new Server(serverPort);
         Server.start();
     }
 }

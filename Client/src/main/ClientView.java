@@ -11,7 +11,7 @@ import java.util.Random;
 import javax.swing.*;
 
 /**
- * ClientView objects create the GUI for a Blackjack player.
+ * ClientView objects create the GUI for a player.
  *
  * @author Jordan Segalman
  */

@@ -3,7 +3,7 @@ import java.util.ArrayList;
 /**
  * Hand objects represent a hand of cards.
  *
- * @author Jordan Segalman
+ * @author Weizhao Tang
  */
 
 public class Hand {

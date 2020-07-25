@@ -5,7 +5,7 @@ import java.util.Comparator;
 /**
  * Card objects represent a standard playing card with a rank and a suit.
  *
- * @author Jordan Segalman
+ * @author Weizhao Tang
  */
 
 public class Card {

@@ -10,9 +10,9 @@ import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * Player objects represent a player in Blackjack.
+ * A player object represents a player in Double Hearts.
  *
- * @author Jordan Segalman
+ * @author Weizhao Tang
  */
 
 public class Player implements Runnable {

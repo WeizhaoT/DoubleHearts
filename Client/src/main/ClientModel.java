@@ -6,9 +6,9 @@ import java.net.SocketException;
 import java.util.ArrayList;
 
 /**
- * BlackjackClientModel objects hold client information.
+ * ClientModel objects hold client information.
  *
- * @author Jordan Segalman
+ * @author Weizhao Tang
  */
 
 public class ClientModel {
@@ -28,7 +28,7 @@ public class ClientModel {
         try {
             socket = new Socket(serverAddress, serverPort);
         } catch (final IOException e) {
-            System.err.println("No Blackjack server running on port " + serverPort + " at address " + serverAddress);
+            System.err.println("No server running on port " + serverPort + " at address " + serverAddress);
             System.exit(1);
         }
         try {

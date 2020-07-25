@@ -7,10 +7,10 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.SwingWorker;
 
 /**
- * BlackjackClient objects connect to the Blackjack server and coordinate
- * between the client model and view.
+ * Client objects connect to the server and coordinate between the client model
+ * and view.
  *
- * @author Jordan Segalman
+ * @author Weizhao Tang
  */
 
 public class ClientController {
@@ -35,7 +35,7 @@ public class ClientController {
     private ClientModel model;
 
     /**
-     * Constructor for BlackjackClient object.
+     * Constructor for Client object.
      *
      * @param serverAddress Server address
      * @param serverPort    Server port
