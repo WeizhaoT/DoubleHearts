@@ -13,7 +13,7 @@ import javax.swing.*;
 /**
  * ClientView objects create the GUI for a player.
  *
- * @author Jordan Segalman
+ * @author Weizhao Tang
  */
 
 public class ClientView extends JFrame implements ActionListener {
