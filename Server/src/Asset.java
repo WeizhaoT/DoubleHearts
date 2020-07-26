@@ -1,14 +1,21 @@
+
 import java.util.LinkedList;
 
-public class Property {
-    public LinkedList<Card> property = new LinkedList<>();
+/**
+ * {@code Asset} class maintains all asset cards of a player.
+ * 
+ * @author Weizhao Tang
+ */
 
-    public void addProperty(final Card newCard) {
-        property.add(newCard);
-        property.sort(new Card.CardComparator());
+public class Asset {
+    public LinkedList<Card> cards = new LinkedList<>();
+
+    public void addAsset(final Card newCard) {
+        cards.add(newCard);
+        cards.sort(new Card.CardComparator());
     }
 
-    public int propertyScore(final int numDecks) {
+    public int getScore(final int numDecks) {
         int heartScore = 0;
         int pigScore = 0;
 
@@ -17,9 +24,9 @@ public class Property {
         int numPig = 0, numPigx = 0;
         int numHearts = 0;
 
-        final int propertySize = property.size();
+        final int propertySize = cards.size();
 
-        for (final Card card : property) {
+        for (final Card card : cards) {
             if (card.isHeart()) {
                 numHearts += 1;
                 heartScore += card.value();
@@ -60,6 +67,6 @@ public class Property {
     }
 
     public void clear() {
-        property.clear();
+        cards.clear();
     }
 }

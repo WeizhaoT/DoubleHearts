@@ -91,7 +91,6 @@ public class ClientController {
                 view.showWelcomePanel();
                 break;
             case "TAKESEAT":
-                waitingForReady = true;
                 view.sitDown(Integer.parseInt(items[2]));
                 break;
             case "PLAYERINFO":
@@ -104,6 +103,7 @@ public class ClientController {
                 view.setSeatErrMsg("Failed to sit down");
                 break;
             case "NEWFRAME":
+                waitingForReady = true;
                 view.enableReadyButton();
                 break;
             case "ISREADY":

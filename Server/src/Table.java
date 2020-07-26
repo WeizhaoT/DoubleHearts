@@ -1,7 +1,5 @@
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -13,8 +11,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 
 public class Table implements Runnable {
-    public static final int tradeOrder[] = new int[] { 1, 2, 3, 0 };
+    public static final int numberOfDecks = 2; // number of decks in shoe
     public static final int tradeSize = 3;
+    public static final int tradeOrder[] = new int[] { 1, 2, 3, 0 };
 
     private static final int lastRoundDelay = 800;
     private static final int frameEndDelay = 400;
@@ -27,11 +26,8 @@ public class Table implements Runnable {
     private final Thread[] playerThreads = new Thread[4];
     private final int[] avtIndices;
     private final String[] names;
-    private final int numberOfDecks = 2; // number of decks in shoe
 
     private final AtomicBoolean[] isReady = new AtomicBoolean[4];
-
-    private int currentPlayerIndex; //
 
     public String[][] tradeOut;
 
@@ -73,7 +69,16 @@ public class Table implements Runnable {
     @Override
     public void run() {
         do {
-            playPig();
+            gameSetup();
+            try {
+                while (true) {
+                    gameFrame();
+                }
+            } catch (final IOException e) {
+                e.printStackTrace();
+            } catch (final InterruptedException e) {
+                System.err.println("\nTable thread interrupted possibly because of a on-table client dropping offline");
+            }
         } while (true);
     }
 
@@ -93,7 +98,6 @@ public class Table implements Runnable {
         System.err.println("Setting up");
         waitingForReady = true;
         frameNum = 0;
-        currentPlayerIndex = (new Random()).nextInt(4);
         initAll();
     }
 
@@ -103,7 +107,7 @@ public class Table implements Runnable {
         resetLatches();
         tradeOut = new String[4][tradeSize];
         for (final Player player : table)
-            player.frameInitLatchCountDown();
+            player.frameEndingLatchCountDown();
     }
 
     private void resetLatches() {
@@ -118,44 +122,33 @@ public class Table implements Runnable {
         }
     }
 
-    private void playPig() {
-        gameSetup();
+    private void setReady(final int seat) {
+        isReady[seat].set(true);
+    }
 
-        try {
-            while (true) {
-                gameFrame();
-            }
-        } catch (final IOException e) {
-            e.printStackTrace();
-        } catch (final InterruptedException e) {
-            e.printStackTrace();
-            System.err.println("\nTable thread interrupted possibly because of a on-table client dropping offline");
-        }
+    private void resetReady() {
+        for (int i = 0; i < 4; i++)
+            isReady[i].set(false);
+
+        roundReadyLatch.reset();
     }
 
     private void gameFrame() throws IOException, InterruptedException {
-        int cardsRemain;
-
         tradeGap = tradeOrder[Math.floorMod(frameNum, tradeOrder.length)];
+        final Shoe shoe = new Shoe(numberOfDecks);
+        shoe.shuffle();
+        int numCards = shoe.remainingCards();
 
-        System.err.println("Waiting for round ready latch");
-        waitForLatch(roundReadyLatch);
-
+        roundReadyLatch.await();
         waitingForReady = false;
 
         broadcastDeal();
-
-        final Shoe shoe = new Shoe(numberOfDecks);
-        shoe.shuffle();
-        cardsRemain = shoe.remainingCards() / 4;
-        final int[] twoClubHolders = dealAllCards(shoe, currentPlayerIndex);
-
-        waitForLatch(allCardsDealtLatch);
+        final int[] twoClubHolders = dealAllCards(shoe, (new Random()).nextInt(4));
+        allCardsDealtLatch.await();
 
         if (tradeGap != 0) {
             broadcastTradeStart(tradeGap);
-            waitForLatch(tradeLatch);
-
+            tradeLatch.await();
             for (int i = 0; i < 4; i++) {
                 final int target = Math.floorMod(i + tradeGap, 4);
                 for (final String cardAlias : tradeOut[i]) {
@@ -169,28 +162,22 @@ public class Table implements Runnable {
         }
 
         broadcastExhibition();
-
-        waitForLatch(exhibitionLatch);
+        exhibitionLatch.await();
 
         for (final Player player : table) {
             player.framePlayingLatchCountDown();
         }
 
         final int roundLeader = pickLeader(twoClubHolders);
-
         broadcastAsset(roundLeader, null);
 
-        playInTurns(cardsRemain, roundLeader);
+        playInTurns(numCards / 4, roundLeader);
 
         for (int i = 0; i < 4; i++) {
             totalScore[i].addAndGet(seats[i].getScore());
         }
 
         Thread.sleep(frameEndDelay);
-
-        for (final Player player : table) {
-            player.frameEndingLatchCountDown();
-        }
 
         frameNum++;
         resetFrame();
@@ -204,7 +191,6 @@ public class Table implements Runnable {
         while ((nextCard = shoe.dealCard()) != null) {
             if (nextCard.weakEquals("2C") && i < numberOfDecks) {
                 leaders[starter]++;
-                System.out.println(names[starter] + " (" + starter + ") got 2C");
             }
 
             seats[starter].addCard(nextCard);
@@ -291,8 +277,6 @@ public class Table implements Runnable {
 
     public boolean sitDown(final Player player, final int seat, final int avtIndex, final String name) {
         synchronized (seats) {
-            assert (table.contains(player));
-
             if (seats[seat] != null)
                 return false;
 
@@ -337,7 +321,6 @@ public class Table implements Runnable {
             for (int i = 0; i < 4; i++) {
                 if (playerThreads[i] != null) {
                     playerThreads[i].interrupt();
-                    System.err.println("Interrupt: " + i);
                 }
             }
         }
@@ -424,15 +407,6 @@ public class Table implements Runnable {
         }
     }
 
-    private void setReady(final int seat) {
-        isReady[seat].set(true);
-    }
-
-    private void resetReady() {
-        for (int i = 0; i < 4; i++)
-            isReady[i].set(false);
-    }
-
     public String getTotalScore() {
         final String[] scoreLiterals = new String[totalScore.length];
         for (int i = 0; i < totalScore.length; i++)
@@ -443,20 +417,6 @@ public class Table implements Runnable {
 
     public int getTradeGap() {
         return tradeGap;
-    }
-
-    /**
-     * Returns the number of players at the table.
-     *
-     * @return the number of players at the table
-     */
-
-    public int numPlayers() {
-        return table.size();
-    }
-
-    public int numDecks() {
-        return numberOfDecks;
     }
 
     public void allCardsDealtLatchCountDown() {
@@ -473,9 +433,5 @@ public class Table implements Runnable {
 
     public void exhibitionLatchCountDown() {
         exhibitionLatch.countDown();
-    }
-
-    private void waitForLatch(final CountUpDownLatch latch) throws InterruptedException {
-        latch.await();
     }
 }

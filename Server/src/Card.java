@@ -1,6 +1,4 @@
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
+import java.util.*;
 
 /**
  * Card objects represent a standard playing card with a rank and a suit.
@@ -64,7 +62,6 @@ public class Card {
 
                 Rank followedRank1 = cards.get(0).rank;
                 Rank followedRank2 = cards.get(1).rank;
-
                 boolean followedPair = followedRank1 == followedRank2;
 
                 if (isPair) {
@@ -327,14 +324,5 @@ public class Card {
         }
 
         return String.join(delim, aliasList);
-    }
-
-    public static void main(String[] args) {
-        Card card;
-        Deck deck = new Deck();
-        while ((card = deck.dealCard()) != null) {
-            boolean comp = card.weakEquals("2C");
-            System.out.println(card.fullAlias() + (comp ? " == " : " != ") + "2C");
-        }
     }
 }

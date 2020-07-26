@@ -4,10 +4,11 @@ import java.awt.*;
 import java.util.Random;
 
 public class MyColors {
-    public static final Color tableGreen = new Color(37, 93, 54);
+    public static final Color tableGreen = new Color(37, 80, 70);
     public static final Color text = new Color(230, 230, 230);
     public static final Color errmsg = new Color(255, 200, 235);
 
+    public static final Color lightYellow = new Color(230, 230, 190);
     public static final Color yellow = new Color(200, 200, 0);
     public static final Color green = new Color(0, 200, 50);
     public static final Color darkYellow = new Color(150, 150, 0);

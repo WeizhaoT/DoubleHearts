@@ -19,7 +19,7 @@ import javax.swing.*;
 public class ClientView extends JFrame implements ActionListener {
     static final long serialVersionUID = 1L;
 
-    private final ClientController controller; // client GUI controller
+    private final ClientController controller;
 
     public int mySeatIndex = -1024;
     public String myName;
@@ -96,10 +96,7 @@ public class ClientView extends JFrame implements ActionListener {
     private void setupFrame() {
         setTitle("Pig");
 
-        // setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        // setLayout(new CardLayout());
-        // showChanges();
     }
 
     /**
@@ -115,6 +112,7 @@ public class ClientView extends JFrame implements ActionListener {
         setLayout(new FullWindowLayout(welcomeLayout, pokerGameLayout));
         pack();
         setResizable(true);
+        setExtendedState(getExtendedState() | JFrame.MAXIMIZED_BOTH);
         setVisible(true);
     }
 
@@ -210,20 +208,15 @@ public class ClientView extends JFrame implements ActionListener {
         turnPanel.setBackground(MyColors.tableGreen);
         turnPanel.setVisible(false);
 
-        centerPanel = new CenterPanel();
-        centerPanel.setOpaque(false);
-        turnPanel.add(centerPanel, PokerGameLayout.CENTER);
+        turnPanel.add(centerPanel = new CenterPanel(), PokerGameLayout.CENTER);
 
         for (int i = 0; i < 4; i++) {
-            playerPanels[i] = new PlayerPanel();
-            turnPanel.add(playerPanels[i], PokerGameLayout.ALLAVTS[i]);
-
-            assetPanels[i] = new AssetPanel();
-            turnPanel.add(assetPanels[i], PokerGameLayout.ALLASSETS[i]);
+            turnPanel.add(playerPanels[i] = new PlayerPanel(), PokerGameLayout.ALLAVTS[i]);
+            turnPanel.add(assetPanels[i] = new AssetPanel(), PokerGameLayout.ALLASSETS[i]);
         }
 
-        handPanel = new HandPanel(controller, this);
-        turnPanel.add(handPanel, PokerGameLayout.HAND);
+        turnPanel.add(handPanel = new HandPanel(controller, this), PokerGameLayout.HAND);
+        turnPanel.add(new RulePanel(), PokerGameLayout.RULE);
 
         final MouseAdapter adaptor = new MouseAdapter() {
             @Override
@@ -236,7 +229,6 @@ public class ClientView extends JFrame implements ActionListener {
 
         turnPanel.addMouseListener(adaptor);
         add(turnPanel, BorderLayout.SOUTH);
-        // add(turnPanel, PanelNames.TURNPANEL.toString());
     }
 
     private void chooseAvatar(int index) {
@@ -431,9 +423,8 @@ public class ClientView extends JFrame implements ActionListener {
                     if (!handPanel.autoFollowLastRound())
                         handPanel.autoChooseOnlyOption();
             }
-        } else
-            centerPanel.showWaitingIfIdle(playerIndex);
-
+        }
+        centerPanel.showWaitingIfIdle(playerIndex);
         showChanges();
     }
 
@@ -511,6 +502,8 @@ public class ClientView extends JFrame implements ActionListener {
             centerPanel.clearSection(loc);
             if (!waitingForReady) {
                 resetForNewFrame();
+            } else if (!allReady[mySeatIndex]) {
+                handPanel.enableReadyButton();
             }
 
             showChanges();
@@ -568,12 +561,6 @@ public class ClientView extends JFrame implements ActionListener {
         if (((Component) target).getName().substring(0, 10).equals("sitButton_")) {
             String inputName;
             final String seatIndexString = ((Component) target).getName().substring(10, 11);
-            // try {
-            // inputName = new String(nameField.getText().getBytes("UTF-8"));
-            // } catch (UnsupportedEncodingException err) {
-            // System.err.println("Warning: name cannot be encoded");
-            // inputName = nameField.getText();
-            // }
             inputName = nameField.getText();
 
             if (inputName.isEmpty() || inputName.isBlank()) {

@@ -27,7 +27,6 @@ public class PlayerPanel extends JPanel {
         scoreLabel.setFont(MyFont.smallScore);
 
         avatar = new ImageLabel();
-        avatar.setBorder(BorderFactory.createLineBorder(MyColors.darkGray, 2));
 
         nameLabel = new JLabel("", SwingConstants.CENTER);
         nameLabel.setForeground(MyColors.text);

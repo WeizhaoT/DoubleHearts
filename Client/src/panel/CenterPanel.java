@@ -41,6 +41,7 @@ public class CenterPanel extends JPanel {
     public CenterPanel() {
         super();
         setLayout(new PokerTableLayout());
+        setOpaque(false);
 
         for (int i = 0; i < 4; i++) {
             sectionPanels[i] = new TableSectionPanel(i);

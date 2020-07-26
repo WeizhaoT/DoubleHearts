@@ -1,11 +1,22 @@
+
 import java.util.concurrent.CountDownLatch;
 
+/**
+ * 
+ * 
+ * 
+ * @see http://www.java2s.com/Tutorial/Java/0120__Development/CountUpDownLatch.htm
+ */
 public class CountUpDownLatch {
     private CountDownLatch latch;
     private final int origCount;
     private int count;
 
-    public CountUpDownLatch(int count) {
+    /**
+     * 
+     * @param count
+     */
+    public CountUpDownLatch(final int count) {
         latch = new CountDownLatch(1);
         this.count = count;
         origCount = count;
@@ -35,7 +46,7 @@ public class CountUpDownLatch {
         count++;
     }
 
-    public void setCount(int count) {
+    public void setCount(final int count) {
         if (count == 0) {
             if (latch.getCount() != 0) {
                 latch.countDown();

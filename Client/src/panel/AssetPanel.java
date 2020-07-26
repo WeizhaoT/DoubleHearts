@@ -84,11 +84,11 @@ public class AssetPanel extends JPanel {
         setComponentZOrder(literalPanel, 0);
 
         assets = new ArrayList<>();
-        score = 0;
         reset();
     }
 
     public void reset() {
+        score = 0;
         literalPanel.removeAll();
 
         assets.clear();

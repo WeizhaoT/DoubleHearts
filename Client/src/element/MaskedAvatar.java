@@ -7,18 +7,20 @@ public class MaskedAvatar extends JPanel {
     static final long serialVersionUID = 1L;
 
     private ImageLabel avt;
-    private JLabel mask;
+    // private JLabel mask;
+    private MaskCircle mask;
 
     public MaskedAvatar(int i, int imageScale) {
         setLayout(null);
+        setOpaque(false);
         setName(String.valueOf(i));
 
         avt = ImageLabel.createAvatar(i, imageScale);
         avt.setBounds(0, 0, imageScale, imageScale);
-        mask = new JLabel();
-        mask.setOpaque(true);
-        mask.setBackground(new Color(0, 0, 0, 150));
-        mask.setBounds(0, 0, imageScale, imageScale);
+        mask = new MaskCircle(imageScale, imageScale);
+        // mask.setOpaque(true);
+        // mask.setBackground(new Color(0, 0, 0, 150));
+        mask.setBoundsAndRepaint(0, 0, imageScale, imageScale);
         setPreferredSize(avt.getPreferredSize());
         add(mask);
         add(avt, 0);
@@ -43,7 +45,7 @@ public class MaskedAvatar extends JPanel {
     public void rescale(int scale) {
         avt.rescale(scale);
         avt.setBounds(0, 0, scale, scale);
-        mask.setBounds(0, 0, scale, scale);
+        mask.setBoundsAndRepaint(0, 0, scale, scale);
         setPreferredSize(new Dimension(scale, scale));
     }
 }

@@ -33,12 +33,13 @@ public class ImageLabel extends JLabel {
             icon = new ImageIcon(
                     ImageIO.read(Thread.currentThread().getContextClassLoader().getResourceAsStream(filename)));
             setIcon(icon);
+            setOpaque(false);
+            cleared = false;
+            setName(filename);
+            setSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
         } catch (IOException e) {
             e.printStackTrace();
         }
-        cleared = false;
-        setName(filename);
-        setSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
     }
 
     public ImageLabel(String filename, int imageScale) {
@@ -82,7 +83,7 @@ public class ImageLabel extends JLabel {
     public void setAvatar(int index, int avatarScale) {
         try {
             icon = new ImageIcon(ImageIO.read(Thread.currentThread().getContextClassLoader()
-                    .getResourceAsStream(String.format("Avatars/avatar%02d.jpg", index))));
+                    .getResourceAsStream(String.format("Avatars/avatar%02d.png", index))));
             cleared = false;
             setOpaque(false);
             rescale(avatarScale);
@@ -93,7 +94,7 @@ public class ImageLabel extends JLabel {
     }
 
     public static ImageLabel createAvatar(int index, int avatarScale) {
-        ImageLabel label = new ImageLabel(String.format("Avatars/avatar%02d.jpg", index), avatarScale);
+        ImageLabel label = new ImageLabel(String.format("Avatars/avatar%02d.png", index), avatarScale);
         if (label != null)
             label.setName(String.valueOf(index));
 

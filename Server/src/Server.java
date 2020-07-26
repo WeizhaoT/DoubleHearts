@@ -3,7 +3,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
- * Server objects allow clients to connect to play Blackjack as a new player.
+ * Server objects allow clients to connect to play Double Hearts as a new
+ * player.
  *
  * @author Weizhao Tang
  */

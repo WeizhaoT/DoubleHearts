@@ -1,13 +1,6 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.concurrent.CountDownLatch;
+import java.util.*;
 
 /**
  * A player object represents a player in Double Hearts.
@@ -16,20 +9,18 @@ import java.util.concurrent.CountDownLatch;
  */
 
 public class Player implements Runnable {
-    private Table table; // table to join
+    private final Table table; // table to join
     private BufferedReader in; // in to client
     private PrintWriter out; // out from client
 
     private int seatIndex = -1;
     private String name;
-    private Hand hand; // player hand to hold cards
-    private Property assets; // player hand to hold cards
+    private Asset assets; // player hand to hold cards
 
     private boolean normal = true;
 
-    private CountDownLatch frameInitLatch; // latch to wait for all players to join game
-    private CountDownLatch framePlayingLatch; // latch to wait for all players to join game
-    private CountDownLatch frameEndingLatch; // latch to wait for all players to join game
+    private final CountUpDownLatch framePlayingLatch = new CountUpDownLatch(1);
+    private final CountUpDownLatch frameEndingLatch = new CountUpDownLatch(1);
 
     private final CountUpDownLatch seatLatch = new CountUpDownLatch(1);
     private final CountUpDownLatch readyLatch = new CountUpDownLatch(1);
@@ -40,7 +31,6 @@ public class Player implements Runnable {
 
     private final ArrayList<Card> playedCards = new ArrayList<>();
 
-    // private final Listener listener;
     private WaitStatus status = WaitStatus.SITDOWN;
 
     private Thread main;
@@ -57,16 +47,17 @@ public class Player implements Runnable {
      * @param table  Table the player joined
      */
 
-    public Player(Socket socket, Table table) {
+    public Player(final Socket socket, final Table table) {
         this.table = table;
         listenerThread = new Thread(new Listener());
         try {
-            InputStreamReader isr = new InputStreamReader(socket.getInputStream(), "UTF-8"); // input stream reader from
-                                                                                             // socket
+            final InputStreamReader isr = new InputStreamReader(socket.getInputStream(), "UTF-8"); // input stream
+                                                                                                   // reader from
+            // socket
 
             in = new BufferedReader(isr);
             out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"), true);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             e.printStackTrace();
         }
     }
@@ -80,18 +71,22 @@ public class Player implements Runnable {
         sendToClient("WELCOME");
 
         main = Thread.currentThread();
-        hand = new Hand();
-        assets = new Property();
+        assets = new Asset();
 
         listenerThread.start();
         resetFrame();
 
-        waitForSeating();
+        try {
+            seatLatch.await();
+        } catch (final InterruptedException e) {
+            e.printStackTrace();
+            return;
+        }
 
         do {
             try {
                 playPigFrame();
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 System.err.println("Player " + seatIndex + " \"" + name + "\" interrupted");
                 resetFrame();
             }
@@ -108,7 +103,7 @@ public class Player implements Runnable {
                         parseMessage(clientMessage);
                     }
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 normal = false;
                 main.interrupt();
                 table.dealWithConnectionLoss(Player.this, seatIndex);
@@ -116,19 +111,18 @@ public class Player implements Runnable {
         }
     }
 
-    private void parseMessage(String clientMessage) {
-        String[] items = clientMessage.split(Server.RECV_DELIM);
-        System.err.println("From Client: " + String.join(", ", items));
+    private void parseMessage(final String clientMessage) {
+        final String[] items = clientMessage.split(Server.RECV_DELIM);
+        System.err.println("From Client: " + seatIndex + " \"" + name + "\": " + String.join(", ", items));
 
         if (!status.toString().equals(items[1])) {
-            System.err.println("Warning: message improbable under status " + status);
-            // return;
+            System.err.println("Warning: improbable message under status " + status);
         }
 
         switch (items[1]) {
             case "SITDOWN":
-                int seat = Integer.parseInt(items[2]);
-                int avtIndex = Integer.parseInt(items[3]);
+                final int seat = Integer.parseInt(items[2]);
+                final int avtIndex = Integer.parseInt(items[3]);
                 name = items[4];
                 if (table.sitDown(Player.this, seat, avtIndex, name)) {
                     sendToClient("TAKESEAT", items[2]);
@@ -140,9 +134,12 @@ public class Player implements Runnable {
                 break;
             case "READY":
                 table.broadcastReady(seatIndex);
+                dealLatch.reset();
                 readyLatch.countDown();
                 break;
             case "ALLDEALT":
+                tradeLatch.reset();
+                showLatch.reset();
                 dealLatch.countDown();
                 break;
             case "TRADE":
@@ -150,6 +147,7 @@ public class Player implements Runnable {
                 for (int i = 0; i < 3; i++) {
                     table.tradeOut[seatIndex][i] = items[2 + i];
                 }
+                showLatch.reset();
                 tradeLatch.countDown();
                 break;
             case "SHOW":
@@ -157,6 +155,7 @@ public class Player implements Runnable {
                     items[i] += "x";
 
                 table.broadcastShown(seatIndex, getSubStrArray(items, 2));
+                cardLatch.reset();
                 showLatch.countDown();
                 break;
             case "PLAY":
@@ -172,12 +171,10 @@ public class Player implements Runnable {
     }
 
     private void playPigFrame() throws InterruptedException {
-        sendToClient("NEWFRAME", String.valueOf(table.numDecks()));
+        sendToClient("NEWFRAME");
 
         status = WaitStatus.READY;
-        synchronized (readyLatch) {
-            readyLatch.await();
-        }
+        readyLatch.await();
         table.roundReadyLatchCountDown();
 
         status = WaitStatus.ALLDEALT;
@@ -199,38 +196,29 @@ public class Player implements Runnable {
 
         frameEndingLatch.await();
 
-        if (!normal)
-            return;
-
-        frameInitLatch.await();
-
         resetFrame();
 
-        String totalScores = table.getTotalScore();
-        sendToClient("ENDFRAME", totalScores);
+        sendToClient("ENDFRAME", table.getTotalScore());
     }
 
-    public void addCard(Card card) {
-        hand.addCard(card);
+    public void addCard(final Card card) {
         sendToClient("ADD", card.fullAlias());
     }
 
-    public void addAsset(ArrayList<Card> cards) {
-        for (Card card : cards)
-            assets.addProperty(card);
+    public void addAsset(final ArrayList<Card> cards) {
+        for (final Card card : cards)
+            assets.addAsset(card);
     }
 
     public int getScore() {
-        return assets.propertyScore(table.numDecks());
+        return assets.getScore(Table.numberOfDecks);
     }
 
     private void resetFrame() {
-        hand.clear();
         assets.clear();
 
-        frameInitLatch = new CountDownLatch(1);
-        framePlayingLatch = new CountDownLatch(1);
-        frameEndingLatch = new CountDownLatch(1);
+        framePlayingLatch.reset();
+        frameEndingLatch.reset();
 
         readyLatch.reset();
         dealLatch.reset();
@@ -239,11 +227,11 @@ public class Player implements Runnable {
         cardLatch.reset();
     }
 
-    public void sendSeating(int seatIndex, int avtIndex, String name) {
+    public void sendSeating(final int seatIndex, final int avtIndex, final String name) {
         sendToClient("PLAYERINFO", String.valueOf(seatIndex), String.valueOf(avtIndex), name);
     }
 
-    public void sendReady(int seatIndex) {
+    public void sendReady(final int seatIndex) {
         sendToClient("ISREADY", String.valueOf(seatIndex));
     }
 
@@ -251,15 +239,15 @@ public class Player implements Runnable {
         sendToClient("DEAL");
     }
 
-    public void sendTradeStart(int tradeGap) {
+    public void sendTradeStart(final int tradeGap) {
         sendToClient("TRADESTART", String.valueOf(tradeGap));
     }
 
-    public void sendTradeReady(int seat) {
+    public void sendTradeReady(final int seat) {
         sendToClient("TRADEREADY", String.valueOf(seat));
     }
 
-    public void sendTradeIn(String[] cardAliases) {
+    public void sendTradeIn(final String[] cardAliases) {
         sendToClient("TRADEIN", String.join(Server.SEND_DELIM, cardAliases));
     }
 
@@ -267,19 +255,19 @@ public class Player implements Runnable {
         sendToClient("EXHIBIT");
     }
 
-    public void sendShown(int seatIndex, String[] cardAliases) {
+    public void sendShown(final int seatIndex, final String[] cardAliases) {
         sendToClient("SHOWN", String.valueOf(seatIndex), String.join(Server.SEND_DELIM, cardAliases));
     }
 
-    public void sendPlayed(boolean lead, int seatIndex, Collection<Card> cards) {
+    public void sendPlayed(final boolean lead, final int seatIndex, final Collection<Card> cards) {
         sendToClient(lead ? "LEAD" : "FOLLOW", String.valueOf(seatIndex), Card.concatCards(Server.SEND_DELIM, cards));
     }
 
-    public void sendAsset(int seatIndex, Collection<Card> cards) {
+    public void sendAsset(final int seatIndex, final Collection<Card> cards) {
         sendToClient("ASSET", String.valueOf(seatIndex), Card.concatCards(Server.SEND_DELIM, cards));
     }
 
-    public void sendReset(int seatIndex) {
+    public void sendReset(final int seatIndex) {
         sendToClient("CONNRESET", String.valueOf(seatIndex));
     }
 
@@ -289,50 +277,30 @@ public class Player implements Runnable {
         return playedCards;
     }
 
-    private void waitForSeating() {
-        try {
-            seatLatch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public Hand getHand() {
-        return hand;
-    }
-
-    private String[] getSubStrArray(String[] items, int start) {
-        return Arrays.asList(items).subList(start, items.length).toArray(new String[0]);
-    }
-
-    private void sendToClient(String... msgs) {
-        if (!msgs[0].equals("ADD"))
-            System.err.println("To Client " + seatIndex + ": " + String.join(", ", msgs));
-
-        ArrayList<String> filteredMsgs = new ArrayList<>();
-
-        for (String msg : msgs) {
-            if (msg.length() > 0)
-                filteredMsgs.add(msg);
-        }
-
-        String output = Server.SEND_PREFIX + Server.SEND_DELIM + String.join(Server.SEND_DELIM, filteredMsgs);
-        out.println(output);
-    }
-
-    /**
-     * Decrements the start latch.
-     */
-
-    public void frameInitLatchCountDown() {
-        frameInitLatch.countDown();
-    }
-
     public void framePlayingLatchCountDown() {
         framePlayingLatch.countDown();
     }
 
     public void frameEndingLatchCountDown() {
         frameEndingLatch.countDown();
+    }
+
+    private String[] getSubStrArray(final String[] items, final int start) {
+        return Arrays.asList(items).subList(start, items.length).toArray(new String[0]);
+    }
+
+    private void sendToClient(final String... msgs) {
+        if (!msgs[0].equals("ADD"))
+            System.err.println("To Client " + seatIndex + " \"" + name + "\": " + String.join(", ", msgs));
+
+        final ArrayList<String> filteredMsgs = new ArrayList<>();
+
+        for (final String msg : msgs) {
+            if (msg.length() > 0)
+                filteredMsgs.add(msg);
+        }
+
+        final String output = Server.SEND_PREFIX + Server.SEND_DELIM + String.join(Server.SEND_DELIM, filteredMsgs);
+        out.println(output);
     }
 }

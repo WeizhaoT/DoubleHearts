@@ -11,10 +11,10 @@ import java.util.*;
 import javax.swing.*;
 
 /**
- * HandPanel objects are panels that contain the cards, hand value, bet amount,
- * and hit, stand, split pairs, and double down buttons for a Blackjack hand.
+ * HandPanel objects are panels that contain the cards and interactive buttons
+ * for a hand.
  *
- * @author Jordan Segalman
+ * @author Weizhao Tang
  */
 
 public class HandPanel extends JPanel implements ActionListener {
@@ -30,7 +30,7 @@ public class HandPanel extends JPanel implements ActionListener {
     private static final int cardUp = 30;
     private static final int handGap = 10;
     private static final int buttonw = 140;
-    private static final int wideButtonw = 160;
+    private static final int wideButtonw = 150;
     private static final int buttonh = 30;
     private static final int midButtonx = (w_ - buttonw) / 2;
 
@@ -507,7 +507,6 @@ public class HandPanel extends JPanel implements ActionListener {
         midButton.setVisible(true);
         updateButton();
         showChanges();
-        System.err.println("play enabled");
     }
 
     public void enableShowButton() {

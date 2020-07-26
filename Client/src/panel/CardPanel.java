@@ -22,12 +22,13 @@ public class CardPanel extends JPanel {
     private static final Color doubled = new Color(dummy.getRed(), dummy.getGreen(), dummy.getBlue(), 65);
 
     public CardPanel(final String alias) {
-        setPreferredSize(new Dimension(w_, h_));
         setLayout(null);
         setName(alias);
+        setOpaque(false);
+        setPreferredSize(new Dimension(w_, h_));
 
         card = Card.createCard(alias);
-
+        card.setOpaque(false);
         card.setBounds(0, 0, w_, h_);
 
         mask = new JLabel();
@@ -45,6 +46,7 @@ public class CardPanel extends JPanel {
 
     public void maskOn() {
         mask.setVisible(true);
+        mask.setOpaque(true);
         mask.setBackground(disabled);
         showChange();
     }
@@ -53,9 +55,10 @@ public class CardPanel extends JPanel {
         if (illuminated) {
             mask.setVisible(true);
             mask.setBackground(doubled);
-        } else
+        } else {
             mask.setVisible(false);
-
+            mask.setOpaque(false);
+        }
         showChange();
     }
 

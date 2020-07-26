@@ -1,6 +1,4 @@
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Shoe objects represent a shoe that holds decks of cards.
@@ -10,7 +8,6 @@ import java.util.List;
 
 public class Shoe {
     private ArrayList<Card> shoe = new ArrayList<>(); // holds the cards in the shoe
-
     private int numCards = 0;
 
     /**
@@ -20,9 +17,13 @@ public class Shoe {
      */
 
     public Shoe(final int numDecks) {
-        // for (int i = 0; i < numDecks; i++) {
-        for (int i = 0; i < 2; i++) {
-            addDeck(new Deck());
+        for (final Card.Suit suit : Card.Suit.values()) {
+            for (final Card.Rank rank : Card.Rank.values()) {
+                for (int i = 0; i < 2; i++) {
+                    shoe.add(new Card(rank, suit));
+                    numCards++;
+                }
+            }
         }
 
         if (Server.TEST_MODE) {
@@ -46,21 +47,6 @@ public class Shoe {
                 shuffle();
             }
         }
-
-        System.err.println("Remaining: " + remainingCards());
-    }
-
-    /**
-     * Adds a deck to the shoe.
-     *
-     * @param deck Deck to add to the shoe
-     */
-
-    private void addDeck(final Deck deck) {
-        for (int i = 0; i < deck.size; i++) {
-            shoe.add(deck.dealCard());
-        }
-        numCards += deck.size;
     }
 
     /**
@@ -81,10 +67,7 @@ public class Shoe {
         if (numCards == 0)
             return null;
 
-        final Card card = shoe.get(shoe.size() - 1); // last card in the shoe
-        shoe.remove(card);
-        numCards -= 1;
-        return card;
+        return shoe.remove(--numCards);
     }
 
     /**
@@ -95,19 +78,5 @@ public class Shoe {
 
     public int remainingCards() {
         return numCards;
-    }
-
-    public static void main(final String[] args) {
-        Server.TEST_MODE = true;
-        Server.numCards = 4;
-        final Shoe shoe = new Shoe(2);
-
-        shoe.shuffle();
-
-        while (shoe.remainingCards() > 0) {
-            System.out.print(shoe.dealCard().fullAlias() + ", ");
-        }
-
-        System.out.println();
     }
 }
