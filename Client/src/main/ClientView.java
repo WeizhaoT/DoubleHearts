@@ -5,10 +5,12 @@ import panel.*;
 import layout.*;
 import element.*;
 
+import java.io.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Random;
 import javax.swing.*;
+import javax.sound.sampled.*;
 
 /**
  * ClientView objects create the GUI for a player.
@@ -25,6 +27,7 @@ public class ClientView extends JFrame implements ActionListener {
     public String myName;
     public int myAvatarIndex;
 
+    private int numShown;
     private int roundProg;
 
     private boolean firstRoundStarted;
@@ -56,6 +59,7 @@ public class ClientView extends JFrame implements ActionListener {
     private final AssetPanel[] assetPanels = new AssetPanel[4];
     private HandPanel handPanel;
     private CenterPanel centerPanel;
+    private Clip cardPlayClip;
 
     /**
      * Constructor for ClientView object.
@@ -66,8 +70,11 @@ public class ClientView extends JFrame implements ActionListener {
     public ClientView(final ClientController controller) {
         this.controller = controller;
         setupWindowListener(this.controller);
+
+        MyFont.registerFont();
         setupFrame();
         createPanels();
+        setupSound();
     }
 
     /**
@@ -94,8 +101,7 @@ public class ClientView extends JFrame implements ActionListener {
      */
 
     private void setupFrame() {
-        setTitle("Pig");
-
+        setTitle("Double Hearts");
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
     }
 
@@ -113,7 +119,23 @@ public class ClientView extends JFrame implements ActionListener {
         pack();
         setResizable(true);
         setExtendedState(getExtendedState() | JFrame.MAXIMIZED_BOTH);
-        setVisible(true);
+        // setVisible(true);
+    }
+
+    private void setupSound() {
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream("Sounds/drop.wav")) {
+            BufferedInputStream bufferedStream = new BufferedInputStream(inputStream);
+            final AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(bufferedStream);
+            cardPlayClip = AudioSystem.getClip();
+            cardPlayClip.open(audioInputStream);
+        } catch (FileNotFoundException e) {
+            System.err.println("Warning: cannot find drop sound");
+            cardPlayClip = null;
+        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
+            e.printStackTrace();
+            System.err.println("Warning: failed to load drop sound: " + e.getClass());
+            cardPlayClip = null;
+        }
     }
 
     /**
@@ -183,6 +205,7 @@ public class ClientView extends JFrame implements ActionListener {
                     final MaskedAvatar avatar = (MaskedAvatar) e.getComponent();
                     final int i = Integer.parseInt(avatar.getName());
                     chooseAvatar(i);
+                    showChanges();
                 }
             }
         };
@@ -208,7 +231,7 @@ public class ClientView extends JFrame implements ActionListener {
         turnPanel.setBackground(MyColors.tableGreen);
         turnPanel.setVisible(false);
 
-        turnPanel.add(centerPanel = new CenterPanel(), PokerGameLayout.CENTER);
+        turnPanel.add(centerPanel = new CenterPanel(this), PokerGameLayout.CENTER);
 
         for (int i = 0; i < 4; i++) {
             turnPanel.add(playerPanels[i] = new PlayerPanel(), PokerGameLayout.ALLAVTS[i]);
@@ -240,7 +263,6 @@ public class ClientView extends JFrame implements ActionListener {
         }
 
         avatars[index].maskOff();
-        showChanges();
     }
 
     /**
@@ -312,11 +334,6 @@ public class ClientView extends JFrame implements ActionListener {
         showChanges();
     }
 
-    public void setMaskMode(final String mode) {
-        handPanel.setMaskMode(mode);
-        showChanges();
-    }
-
     public void updateFeasibleCard() {
         handPanel.updateFeasibleCard();
         showChanges();
@@ -333,6 +350,11 @@ public class ClientView extends JFrame implements ActionListener {
 
     public void enableHandControl(final boolean b) {
         handPanel.enableMouseControl(b);
+    }
+
+    public void showAllHistory() {
+        centerPanel.allShowHistory();
+        showChanges();
     }
 
     public void setFirstRound(final boolean reset) {
@@ -358,8 +380,9 @@ public class ClientView extends JFrame implements ActionListener {
         showChanges();
     }
 
-    public void addAsset(final int absLoc, final String[] asset) {
+    public void addAsset(final int absLoc, final int timeLimit, final String[] asset) {
         final int playerIndex = getRelativeLoc(absLoc);
+        roundProg = 0;
 
         if (playerIndex == 0) {
             handPanel.setLeadCards(null);
@@ -368,12 +391,60 @@ public class ClientView extends JFrame implements ActionListener {
         for (final String alias : asset)
             assetPanels[playerIndex].addAsset(alias);
 
+        handPanel.enableSeeLastRoundButton(false);
+        centerPanel.allSaveHistory();
+        if (!handPanel.isEmpty()) {
+            showWaiting(timeLimit, playerIndex);
+            setFirstRound(false);
+            handPanel.showSeeLastRoundButton(true);
+            handPanel.setMaskMode(playerIndex == 0 ? "NORMAL" : "ALL");
+        }
         showChanges();
     }
 
-    public void showCards(final int absLoc, final String[] aliases) {
+    public void playTurn(boolean lead, int timeLimit, int absLoc, String[] cardAliases) {
         final int playerIndex = getRelativeLoc(absLoc);
-        centerPanel.showCards(playerIndex, aliases);
+        if (lead) {
+            handPanel.setLeadCards(cardAliases);
+            handPanel.setMaskMode(playerIndex == 0 ? "ALL" : "NORMAL");
+        }
+
+        centerPanel.allHideHistory();
+        centerPanel.showCards(playerIndex, cardAliases);
+        centerPanel.endTiming(playerIndex);
+
+        if (++roundProg < 4)
+            showWaiting(timeLimit, getRelativeLoc(absLoc + 1));
+
+        if (cardPlayClip != null) {
+            cardPlayClip.setMicrosecondPosition(0);
+            cardPlayClip.start();
+        }
+        showChanges();
+    }
+
+    private void showWaiting(final int timeLimit, final int playerIndex) {
+        if (playerIndex == 0) {
+            if (!handPanel.isEmpty()) {
+                handPanel.enablePlayButton();
+                if (!handPanel.autoPlayLastCard())
+                    if (!handPanel.autoFollowLastRound())
+                        handPanel.autoChooseOnlyOption();
+            }
+        }
+        centerPanel.showWaiting(timeLimit, playerIndex);
+        showChanges();
+    }
+
+    public void enterShowingPhase(final int timeLimit) {
+        numShown = 0;
+        handPanel.setMaskMode("SHOWABLE");
+        handPanel.enableShowButton();
+        centerPanel.setCornerTimer(timeLimit);
+        centerPanel.setErrMsg("You can show " + MyColors.getColoredText("\u2663 T", MyColors.clubColor) + " (x2), "
+                + MyColors.getColoredText("\u2666 J", MyColors.diamondColor) + " (+100), or "
+                + MyColors.getColoredText("\u2660 Q", MyColors.spadeColor)
+                + " (-100). Shown cards will enjoy double effect.");
         showChanges();
     }
 
@@ -392,54 +463,16 @@ public class ClientView extends JFrame implements ActionListener {
             handPanel.setExhibitedCards();
             centerPanel.setErrMsg("");
         }
-        showChanges();
-    }
-
-    public void clearLastRound() {
-        handPanel.enableSeeLastRoundButton(false);
-        centerPanel.allSaveHistory();
-        if (!handPanel.isEmpty())
-            handPanel.showSeeLastRoundButton(true);
-
-        showChanges();
-    }
-
-    public void showAllHistory() {
-        centerPanel.allShowHistory();
-        showChanges();
-    }
-
-    public void hideAllHistory() {
-        centerPanel.allHideHistory();
-        showChanges();
-    }
-
-    public void showNextWaiting(final int absLoc) {
-        final int playerIndex = getRelativeLoc(absLoc + 1);
-        if (playerIndex == 0) {
-            if (!handPanel.isEmpty()) {
-                handPanel.enablePlayButton();
-                if (!handPanel.autoPlayLastCard())
-                    if (!handPanel.autoFollowLastRound())
-                        handPanel.autoChooseOnlyOption();
-            }
+        if (++numShown == 4) {
+            centerPanel.reset();
         }
-        centerPanel.showWaitingIfIdle(playerIndex);
         showChanges();
     }
 
-    public void setShowCardWaiting() {
-        handPanel.enableShowButton();
-        centerPanel.allShowWaiting();
-        centerPanel.setErrMsg("You can show " + MyColors.getColoredText("\u2663 T", MyColors.clubColor) + " (x2), "
-                + MyColors.getColoredText("\u2666 J", MyColors.diamondColor) + " (+100), or "
-                + MyColors.getColoredText("\u2660 Q", MyColors.spadeColor)
-                + " (-100). Shown cards will enjoy double effect.");
-        showChanges();
-    }
-
-    public void setTradeWaiting(final int frame) {
+    public void enterTradingPhase(final int timeLimit, final int frame) {
+        handPanel.setMaskMode("TRADE");
         handPanel.enableTradeButton();
+        centerPanel.setCornerTimer(timeLimit);
         centerPanel.setFrameIndex(frame);
         centerPanel.showAllArrows();
         centerPanel.enablePassingHints(true);
@@ -453,7 +486,6 @@ public class ClientView extends JFrame implements ActionListener {
             centerPanel.enablePassingHints(false);
             handPanel.disableMidButton();
         }
-
         showChanges();
     }
 
@@ -463,17 +495,12 @@ public class ClientView extends JFrame implements ActionListener {
         showChanges();
     }
 
-    public void setLeadCards(final String[] aliases) {
-        roundProg = 0;
-        handPanel.setLeadCards(aliases);
-    }
-
     public void setTotalScore(final String[] scores) {
         for (int i = 0; i < 4; i++) {
             playerPanels[getRelativeLoc(i)].setTotalScore(Integer.parseInt(scores[i]));
         }
         handPanel.showSeeLastRoundButton(false);
-        hideAllHistory();
+        centerPanel.allHideHistory();
         centerPanel.setScoreBoard(this);
         showChanges();
     }
@@ -511,6 +538,10 @@ public class ClientView extends JFrame implements ActionListener {
         }
     }
 
+    public void performDefaultReaction() {
+        handPanel.performDefaultReaction();
+    }
+
     public String[] getNames() {
         final String[] names = new String[4];
         for (int i = 0; i < 4; i++) {
@@ -534,18 +565,6 @@ public class ClientView extends JFrame implements ActionListener {
 
     public boolean isLastRound() {
         return handPanel.isEmpty();
-    }
-
-    public void resetRoundProg() {
-        roundProg = 0;
-    }
-
-    public void incrRoundProg() {
-        roundProg++;
-    }
-
-    public boolean isRoundEnd() {
-        return roundProg >= 4;
     }
 
     /**

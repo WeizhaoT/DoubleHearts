@@ -9,6 +9,14 @@ public class PokerTableLayout implements LayoutManager2 {
     public static final String ESEC = "Esec";
     public static final String[] ALLSECS = new String[] { SSEC, ESEC, NSEC, WSEC };
 
+    public static final String CLOCK = "clock";
+    public static final String CCLOCK = "Cclock";
+    public static final String NCLOCK = "N" + CLOCK;
+    public static final String SCLOCK = "S" + CLOCK;
+    public static final String WCLOCK = "W" + CLOCK;
+    public static final String ECLOCK = "E" + CLOCK;
+    public static final String[] ALLCLOCKS = new String[] { SCLOCK, ECLOCK, NCLOCK, WCLOCK };
+
     public static final String HLABEL = "Hlabel";
     public static final String HBG = "Hbg";
     public static final String SLABEL = "Slabel";
@@ -20,12 +28,14 @@ public class PokerTableLayout implements LayoutManager2 {
 
     public static final int secWidth = 700;
     public static final int secHeight = 180;
+    public static final int clockWidth = 70;
+    public static final int clockHeight = 50;
     public static final int scoreWidth = 600;
     public static final int scoreHeight = 300;
     public static final int helperWidth = 360;
     public static final int helperHeight = 120;
-    public static final int passWidth = 180;
-    public static final int passHeight = 80;
+    public static final int passWidth = 150;
+    public static final int passHeight = 70;
 
     public static final int roundArrowScale = 180;
     public static final int arrowHalfWidth = 23;
@@ -33,6 +43,7 @@ public class PokerTableLayout implements LayoutManager2 {
     public static final int EWArrowLen = 600;
     public static final int NSHalfGap = 100;
     public static final int EWHalfGap = 60;
+    public static final int cornerClockGap = 25;
 
     public static final int minWidth = 700;
     public static final int minHeight = 2 * secHeight;
@@ -42,6 +53,9 @@ public class PokerTableLayout implements LayoutManager2 {
     Component southSection;
     Component eastSection;
     Component westSection;
+
+    Component[] clocks = new Component[4];
+    Component cornerClock;
 
     Component helperLabel;
     Component helperBackground;
@@ -80,6 +94,18 @@ public class PokerTableLayout implements LayoutManager2 {
             eastSection = comp;
         } else if (WSEC.equals(name)) {
             westSection = comp;
+        } else if (CCLOCK.equals(name)) {
+            cornerClock = comp;
+        } else if (name.endsWith(CLOCK)) {
+            boolean hit = false;
+            for (int i = 0; i < 4; i++) {
+                if (hit = name.equals(ALLCLOCKS[i])) {
+                    clocks[i] = comp;
+                    break;
+                }
+            }
+            if (!hit)
+                throw new IllegalArgumentException("cannot add to layout: constraint \"" + name + "\" not identified");
         } else if (SBG.equals(name)) {
             scoreBackground = comp;
         } else if (SLABEL.equals(name)) {
@@ -153,6 +179,27 @@ public class PokerTableLayout implements LayoutManager2 {
             if (southSection != null) {
                 southSection.setBounds((width - secWidth) / 2, bottom - secHeight, secWidth, secHeight);
                 target.setComponentZOrder(southSection, zorder--);
+            }
+            if (cornerClock != null) {
+                cornerClock.setBounds(right - clockWidth - cornerClockGap, bottom - clockHeight - cornerClockGap,
+                        clockWidth, clockHeight);
+                target.setComponentZOrder(cornerClock, zorder--);
+            }
+            if (clocks[0] != null) {
+                clocks[0].setBounds((width - clockWidth) / 2, bottom - clockHeight, clockWidth, clockHeight);
+                target.setComponentZOrder(clocks[0], zorder--);
+            }
+            if (clocks[1] != null) {
+                clocks[1].setBounds(right - clockWidth, (height - clockHeight) / 2, clockWidth, clockHeight);
+                target.setComponentZOrder(clocks[1], zorder--);
+            }
+            if (clocks[2] != null) {
+                clocks[2].setBounds((width - clockWidth) / 2, top, clockWidth, clockHeight);
+                target.setComponentZOrder(clocks[2], zorder--);
+            }
+            if (clocks[3] != null) {
+                clocks[3].setBounds(left, (height - clockHeight) / 2, clockWidth, clockHeight);
+                target.setComponentZOrder(clocks[3], zorder--);
             }
             if (scoreBackground != null) {
                 scoreBackground.setBounds((width - scoreWidth) / 2, (height - scoreHeight) / 2, scoreWidth,

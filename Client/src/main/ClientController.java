@@ -83,7 +83,7 @@ public class ClientController {
         if (items.length <= 1 || !RECV_PREFIX.equals(items[0]))
             return;
 
-        int seatIndex, absLoc;
+        int seatIndex, absLoc, timeLimit;
         String[] cardAliases;
 
         switch (items[1]) {
@@ -122,8 +122,7 @@ public class ClientController {
                 }
                 break;
             case "TRADESTART":
-                view.setMaskMode("TRADE");
-                view.setTradeWaiting(Integer.parseInt(items[2]));
+                view.enterTradingPhase(Integer.parseInt(items[2]), Integer.parseInt(items[3]));
                 view.enableHandControl(true);
                 break;
             case "TRADEREADY":
@@ -133,47 +132,24 @@ public class ClientController {
                 view.tradeInCards(getSubStrArray(items, 2));
                 break;
             case "EXHIBIT":
-                view.setMaskMode("SHOWABLE");
                 view.enableHandControl(true);
-                view.setShowCardWaiting();
+                view.enterShowingPhase(Integer.parseInt(items[2]));
                 break;
             case "SHOWN":
                 absLoc = Integer.parseInt(items[2]);
                 view.showExhibitedCards(absLoc, getSubStrArray(items, 3));
                 break;
             case "ASSET":
-                absLoc = Integer.parseInt(items[2]);
-                view.resetRoundProg();
-                view.addAsset(absLoc, getSubStrArray(items, 3));
-                view.clearLastRound();
-                if (!view.isLastRound()) {
-                    view.showNextWaiting(absLoc - 1);
-                    view.setFirstRound(false);
-                    if (view.getRelativeLoc(absLoc) == 0)
-                        view.setMaskMode("NORMAL");
-                    else
-                        view.setMaskMode("ALL");
-                }
+                timeLimit = Integer.parseInt(items[2]);
+                absLoc = Integer.parseInt(items[3]);
+                view.addAsset(absLoc, timeLimit, getSubStrArray(items, 4));
                 break;
             case "LEAD":
-                absLoc = Integer.parseInt(items[2]);
-                view.setLeadCards(cardAliases = getSubStrArray(items, 3));
-                view.showCards(absLoc, cardAliases);
-                view.incrRoundProg();
-                view.showNextWaiting(absLoc);
-                view.hideAllHistory();
-                if (view.getRelativeLoc(absLoc) != 0)
-                    view.setMaskMode("NORMAL");
-
-                break;
             case "FOLLOW":
-                absLoc = Integer.parseInt(items[2]);
-                view.showCards(absLoc, getSubStrArray(items, 3));
-                view.incrRoundProg();
-                if (!view.isRoundEnd())
-                    view.showNextWaiting(absLoc);
-
-                view.hideAllHistory();
+                timeLimit = Integer.parseInt(items[2]);
+                absLoc = Integer.parseInt(items[3]);
+                cardAliases = getSubStrArray(items, 4);
+                view.playTurn("LEAD".equals(items[1]), timeLimit, absLoc, cardAliases);
                 break;
             case "ENDFRAME":
                 waitingForReady = true;

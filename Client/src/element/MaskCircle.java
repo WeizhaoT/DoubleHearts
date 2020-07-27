@@ -29,7 +29,6 @@ public class MaskCircle extends JPanel {
     @Override
     protected void paintComponent(final Graphics g) {
         super.paintComponent(g);
-        System.err.println("Repaint");
         g.setColor(maskBlack);
         g.fillOval(0, 0, w_, h_);
     }

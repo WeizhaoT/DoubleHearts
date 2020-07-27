@@ -12,22 +12,25 @@ import javax.swing.*;
 public class CenterPanel extends JPanel {
     static final long serialVersionUID = 1L;
 
-    private final int errw = PokerTableLayout.helperWidth;
-    private final int errh = PokerTableLayout.helperHeight;
-    private final int scorew = PokerTableLayout.scoreWidth;
-    private final int scoreh = PokerTableLayout.scoreHeight;
-    private final int passw = PokerTableLayout.passWidth;
-    private final int passh = PokerTableLayout.passHeight;
-    private final int namew = 360;
-    private final int gap = 0;
-    private final int inset = 10;
-    private final int divh = scoreh / 5;
+    private static final int errw = PokerTableLayout.helperWidth;
+    private static final int errh = PokerTableLayout.helperHeight;
+    private static final int scorew = PokerTableLayout.scoreWidth;
+    private static final int scoreh = PokerTableLayout.scoreHeight;
+    private static final int passw = PokerTableLayout.passWidth;
+    private static final int passh = PokerTableLayout.passHeight;
+    private static final int namew = 360;
+    private static final int gap = 0;
+    private static final int inset = 10;
+    private static final int divh = scoreh / 5;
 
-    private final Color scoreFG = MyColors.tableGreen;
+    private static final Color scoreFG = MyColors.tableGreen;
 
+    private final ClientView view;
     private int frame = 0;
 
     private final TableSectionPanel[] sectionPanels = new TableSectionPanel[4];
+    private final DigitalClock[] sectionClocks = new DigitalClock[4];
+    private final DigitalClock cornerClock;
 
     private final JLabel helperLabel;
     private final BackgroundRect helperLabelBG;
@@ -38,20 +41,24 @@ public class CenterPanel extends JPanel {
 
     private final ArrowLabel[][] arrows = new ArrowLabel[4][4];
 
-    public CenterPanel() {
+    public CenterPanel(ClientView v) {
         super();
+        view = v;
         setLayout(new PokerTableLayout());
         setOpaque(false);
 
         for (int i = 0; i < 4; i++) {
             sectionPanels[i] = new TableSectionPanel(i);
+            sectionClocks[i] = new DigitalClock(-1, i == 0 ? view : null);
+
             add(sectionPanels[i], PokerTableLayout.ALLSECS[i]);
+            add(sectionClocks[i], PokerTableLayout.ALLCLOCKS[i]);
         }
 
         helperLabel = new JLabel("", SwingConstants.CENTER);
         helperLabel.setOpaque(false);
         helperLabel.setForeground(MyColors.tableGreen);
-        helperLabel.setFont(helperLabel.getFont().deriveFont(MyFont.Size.errMsg));
+        helperLabel.setFont(MyFont.errMsg);
         add(helperLabel, PokerTableLayout.HLABEL);
 
         helperLabelBG = new BackgroundRect(errw, errh);
@@ -67,11 +74,14 @@ public class CenterPanel extends JPanel {
         passLabel = new JLabel("", SwingConstants.CENTER);
         passLabel.setOpaque(false);
         passLabel.setForeground(MyColors.tableGreen);
-        passLabel.setFont(passLabel.getFont().deriveFont(MyFont.Size.errMsg));
+        passLabel.setFont(MyFont.pass);
         add(passLabel, PokerTableLayout.PLABEL);
 
         passLabelBG = new BackgroundRect(passw, passh);
         add(passLabelBG, PokerTableLayout.PBG);
+
+        cornerClock = new DigitalClock(-1, view);
+        add(cornerClock, PokerTableLayout.CCLOCK);
 
         for (int j = 1; j < 4; j++) {
             for (int i = 0; i < 4; i++) {
@@ -117,18 +127,20 @@ public class CenterPanel extends JPanel {
         }
     }
 
-    public void allShowWaiting() {
-        for (final TableSectionPanel panel : sectionPanels)
-            panel.showWait();
+    public void setCornerTimer(final int timeLimit) {
+        cornerClock.restart(timeLimit);
     }
 
     public void showCards(final int i, final String[] aliases) {
         sectionPanels[i].showCards(aliases);
     }
 
-    public void showWaitingIfIdle(final int i) {
-        if (sectionPanels[i].isIdle())
-            sectionPanels[i].showWait();
+    public void endTiming(final int i) {
+        sectionClocks[i].endTiming();
+    }
+
+    public void showWaiting(final int timeLimit, final int i) {
+        sectionClocks[i].restart(timeLimit);
     }
 
     public void showReady(final int i) {
@@ -301,6 +313,11 @@ public class CenterPanel extends JPanel {
         for (final TableSectionPanel sectionPanel : sectionPanels) {
             sectionPanel.clear();
         }
+        for (final DigitalClock clock : sectionClocks) {
+            clock.endTiming();
+        }
+        cornerClock.endTiming();
+
         showChanges();
     }
 

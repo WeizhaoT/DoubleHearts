@@ -9,6 +9,10 @@ import java.util.*;
  */
 
 public class Player implements Runnable {
+    private static final String timeLimitTrade = "45";
+    private static final String timeLimitShow = "20";
+    private static final String timeLimitPlay = "40";
+
     private final Table table; // table to join
     private BufferedReader in; // in to client
     private PrintWriter out; // out from client
@@ -240,7 +244,7 @@ public class Player implements Runnable {
     }
 
     public void sendTradeStart(final int tradeGap) {
-        sendToClient("TRADESTART", String.valueOf(tradeGap));
+        sendToClient("TRADESTART", timeLimitTrade, String.valueOf(tradeGap));
     }
 
     public void sendTradeReady(final int seat) {
@@ -252,7 +256,7 @@ public class Player implements Runnable {
     }
 
     public void sendExhibition() {
-        sendToClient("EXHIBIT");
+        sendToClient("EXHIBIT", timeLimitShow);
     }
 
     public void sendShown(final int seatIndex, final String[] cardAliases) {
@@ -260,11 +264,12 @@ public class Player implements Runnable {
     }
 
     public void sendPlayed(final boolean lead, final int seatIndex, final Collection<Card> cards) {
-        sendToClient(lead ? "LEAD" : "FOLLOW", String.valueOf(seatIndex), Card.concatCards(Server.SEND_DELIM, cards));
+        sendToClient(lead ? "LEAD" : "FOLLOW", timeLimitPlay, String.valueOf(seatIndex),
+                Card.concatCards(Server.SEND_DELIM, cards));
     }
 
     public void sendAsset(final int seatIndex, final Collection<Card> cards) {
-        sendToClient("ASSET", String.valueOf(seatIndex), Card.concatCards(Server.SEND_DELIM, cards));
+        sendToClient("ASSET", timeLimitPlay, String.valueOf(seatIndex), Card.concatCards(Server.SEND_DELIM, cards));
     }
 
     public void sendReset(final int seatIndex) {
