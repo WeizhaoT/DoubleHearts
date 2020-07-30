@@ -3,13 +3,13 @@ Double Hearts is a double-deck version of the Hearts game on early Windows syste
 
 ## Game Rule
 
-Just like Hearts and Bridge, Double Hearts is a trick-taking card game, but it is based on two decks. It requires exactly 4 players to play.
+Just like Hearts and Bridge, Double Hearts is a trick-taking card game, but it is based on two decks of 52 poker cards. It requires exactly 4 players to play. Players should **NOT** collaborate with each other.
 
 In each deal, each player is dealt 26 cards randomly. They take turns in leading rounds, in which they play cards from their hands. Eventually, when their hands are cleared simultaneously, their scores are calculated and they initiate the next deal. 
 
-In each round, the leader leads with one single card or a pair of identical cards, and the other players follow with the **same number** of cards. 
+In each round, the leader leads with one single card or a pair of identical cards, and the other players take turns to follow in counter-clockwise order with the **same number** of cards. 
 
-The one playing cards with the highest value wins the round, takes all cards in that round and leads the next round. 
+The player who played card(s) of the highest value wins the round (trick), takes all scored cards played in that round, and becomes the leader of the next round. 
 
 ### Leading and Following
 
