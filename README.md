@@ -36,7 +36,7 @@ The one playing cards with the highest value wins the round, takes all cards in 
 
 For instance, when a round is led by &#x2666;88, &#x2666;K &#x2665;A < &#x2666;88 < &#x2666;AA < &#x2666;23 < &#x2666;9Q (player after &#x2666;2Q) < &#x2666;2Q (player before &#x2666;9Q). If the players actually followed &#x2666;K &#x2665;A, &#x2666;2Q, &#x2666;9Q sequentially, the one who played &#x2666;2Q should take the scored &#x2665;A into his pocket. 
 
-### Scores
+### Scoring
  
  - List of scored cards and their basic effects:
  
@@ -50,9 +50,25 @@ For instance, when a round is led by &#x2666;88, &#x2666;K &#x2665;A < &#x2666;8
     - For instance, if a player got {&#x2663;10 10, &#x2660;Q, &#x2665;2 7 J}, his base score is -130, the score sum of {&#x2660;Q, &#x2665;2 7 J}. Since he has two &#x2663;10's, his final score is base score times **4**, which equals -520. 
     
  - Special cases:
-    - A player got no scored cards (including &#x2665;2-4) except &#x2663;10: each &#x2663;10 is worth +50 points now as a reward of avoiding winning penalty tricks.
+    - A player got no scored cards (including &#x2665;2-4) except &#x2663;10: each &#x2663;10 is worth +50 points now as a reward of avoiding winning penalty tricks under doubled and even quadrapled risks.
     - **Small slam**: a player who gets all 26 hearts (including &#x2665;2-4) in one hand should turn all negative heart scores to positive. 
     - **Grand slam**: a player who gets all **scored cards** should turn all negative heart **and &#x2660;Q** scores to positive. 
+
+### Additional Phases Besides Playing Rounds
+
+#### Card Passing or Trading
+
+After dealing all cards, each player chooses 3 cards to pass to another player. The number of hands dealt decides to whom to pass the cards. 
+
+#### Exposure of Special Scored Cards
+
+**&#x2663;10, &#x2666;J, &#x2660;Q** are considered special scored cards because they are all the unique scored cards in their respective suits. After card trading, the players choose to expose an arbitrary combination of the special cards in their hands. Exposed cards will be public and enjoy double effects:
+
+| &#x2663;10 | &#x2666;J | &#x2660;Q |
+| :--------: | :-------: | :-------: |
+| x4 | +200 | -200 |
+
+Note that there exists alternative rules where an exposure will cause all cards with the same face to be doubled. It is also allowed to expose &#x2665;A in some other rules, which results in doubled penalty of the entire heart suit. This, however, is considered imbalanced in this implementation, because you can easily see a score of less than -10,000 in a single deal. 
 
 ## Usage
 Run server at port `32266`: (default port is `23366`)
