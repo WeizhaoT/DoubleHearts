@@ -34,7 +34,7 @@ The one playing cards with the highest value wins the round, takes all cards in 
  
  - In a round, when two players play cards of the same value, the first one wins. 
 
-For instance, when a round is led by &#x2666;88, &#x2666;K &#x2665;A < &#x2666;88 < &#x2666;AA < &#x2666;23 < &#x2666;9Q (player after &#x2666;2Q) < &#x2666;2Q (player before &#x2666;9Q). If the players actually followed &#x2666;K &#x2665;A, &#x2666;2Q, &#x2666;9Q sequentially, the one who played &#x2666;2Q should take the scored &#x2665;A into his pocket. 
+For instance, when a round is led by &#x2666;88, &#x2666;K &#x2665;A < &#x2666;88 < &#x2666;AA < &#x2666;23 < &#x2666;9Q (player after &#x2666;2Q) < &#x2666;2Q (player before &#x2666;9Q). If the players actually followed (&#x2666;K&#x2665;A), (&#x2666;2Q), (&#x2666;9Q) sequentially, the one who played &#x2666;2Q should take the scored &#x2665;A into his pocket. 
 
 ### Scoring
  
