@@ -1,7 +1,7 @@
 # DoubleHearts
 Double Hearts is a double-deck version of the Hearts game on early Windows systems. 
 
-# Usage
+## Usage
 Run server at port `32266`: (default port is `23366`)
 ```
 java -jar DoubleHeartsServer.jar -p 32266
