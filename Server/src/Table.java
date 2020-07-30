@@ -9,14 +9,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Weizhao Tang
  */
-
 public class Table implements Runnable {
     public static final int numberOfDecks = 2; // number of decks in shoe
     public static final int tradeSize = 3;
     public static final int tradeOrder[] = new int[] { 1, 2, 3, 0 };
 
     private static final int lastRoundDelay = 800;
-    private static final int frameEndDelay = 400;
+    private static final int frameEndDelay = 1000;
+    private static final int endShowingDelay = 2000;
 
     private Thread tabThread;
 
@@ -28,6 +28,7 @@ public class Table implements Runnable {
     private final String[] names;
 
     private final AtomicBoolean[] isReady = new AtomicBoolean[4];
+    private final AtomicInteger numShown = new AtomicInteger(0);
 
     public String[][] tradeOut;
 
@@ -105,6 +106,7 @@ public class Table implements Runnable {
         waitingForReady = true;
         resetReady();
         resetLatches();
+        numShown.set(0);
         tradeOut = new String[4][tradeSize];
         for (final Player player : table)
             player.frameEndingLatchCountDown();
@@ -142,7 +144,7 @@ public class Table implements Runnable {
         roundReadyLatch.await();
         waitingForReady = false;
 
-        broadcastDeal();
+        broadcastDeal(numCards / 4);
         final int[] twoClubHolders = dealAllCards(shoe, (new Random()).nextInt(4));
         allCardsDealtLatch.await();
 
@@ -168,8 +170,11 @@ public class Table implements Runnable {
             player.framePlayingLatchCountDown();
         }
 
+        if (numShown.get() > 0)
+            Thread.sleep(endShowingDelay);
+
         final int roundLeader = pickLeader(twoClubHolders);
-        broadcastAsset(roundLeader, null);
+        broadcastFirstLeader(roundLeader);
 
         playInTurns(numCards / 4, roundLeader);
 
@@ -335,10 +340,10 @@ public class Table implements Runnable {
         }
     }
 
-    public void broadcastDeal() {
+    public void broadcastDeal(final int numCards) {
         synchronized (seats) {
             for (final Player player : seats)
-                player.sendDeal();
+                player.sendDeal(numCards);
         }
     }
 
@@ -366,9 +371,20 @@ public class Table implements Runnable {
     }
 
     public void broadcastShown(final int seat, final String[] cardAliases) {
+        if (cardAliases != null && cardAliases.length != 0) {
+            numShown.incrementAndGet();
+        }
         synchronized (seats) {
             for (final Player player : seats)
                 player.sendShown(seat, cardAliases);
+        }
+    }
+
+    public void broadcastFirstLeader(final int seat) {
+        synchronized (seats) {
+            for (final Player player : seats) {
+                player.sendFirstLeader(seat);
+            }
         }
     }
 

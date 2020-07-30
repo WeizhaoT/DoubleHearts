@@ -117,7 +117,9 @@ public class Player implements Runnable {
 
     private void parseMessage(final String clientMessage) {
         final String[] items = clientMessage.split(Server.RECV_DELIM);
-        System.err.println("From Client: " + seatIndex + " \"" + name + "\": " + String.join(", ", items));
+
+        if (Server.TEST_MODE)
+            System.err.println("From Client: " + seatIndex + " \"" + name + "\": " + String.join(", ", items));
 
         if (!status.toString().equals(items[1])) {
             System.err.println("Warning: improbable message under status " + status);
@@ -239,8 +241,8 @@ public class Player implements Runnable {
         sendToClient("ISREADY", String.valueOf(seatIndex));
     }
 
-    public void sendDeal() {
-        sendToClient("DEAL");
+    public void sendDeal(final int numCards) {
+        sendToClient("DEAL", String.valueOf(numCards));
     }
 
     public void sendTradeStart(final int tradeGap) {
@@ -261,6 +263,10 @@ public class Player implements Runnable {
 
     public void sendShown(final int seatIndex, final String[] cardAliases) {
         sendToClient("SHOWN", String.valueOf(seatIndex), String.join(Server.SEND_DELIM, cardAliases));
+    }
+
+    public void sendFirstLeader(final int seatIndex) {
+        sendToClient("OPENING", timeLimitPlay, String.valueOf(seatIndex));
     }
 
     public void sendPlayed(final boolean lead, final int seatIndex, final Collection<Card> cards) {
@@ -295,7 +301,7 @@ public class Player implements Runnable {
     }
 
     private void sendToClient(final String... msgs) {
-        if (!msgs[0].equals("ADD"))
+        if (!msgs[0].equals("ADD") && Server.TEST_MODE)
             System.err.println("To Client " + seatIndex + " \"" + name + "\": " + String.join(", ", msgs));
 
         final ArrayList<String> filteredMsgs = new ArrayList<>();

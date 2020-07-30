@@ -36,6 +36,8 @@ public class WelcomeLayout implements LayoutManager2 {
     public static final int txth = 80;
     public static final int maxtxtw = 700;
     public static final int maxtxtgap = 100;
+    public static final int maxtxtFieldw = 360;
+    public static final int txtFieldh = 50;
 
     public static final float tabWeight = 4.0f;
 
@@ -230,6 +232,8 @@ public class WelcomeLayout implements LayoutManager2 {
             final int txtrw = Math.min(rw, maxtxtw);
             rx1 += (rw - txtrw) / 2;
 
+            final int txtFieldw = Math.min(txtrw, maxtxtFieldw);
+
             // placing elements
             int zorder = target.getComponentCount() - 1;
 
@@ -261,7 +265,8 @@ public class WelcomeLayout implements LayoutManager2 {
                 nameLabel.setBounds(rx1, ry1, txtrw, txth);
             }
             if (nameField != null) {
-                nameField.setBounds(rx1, ry1 + txth, txtrw, txth);
+                nameField.setBounds(rx1 + (txtrw - txtFieldw) / 2, ry1 + txth + (txth - txtFieldh) / 2, txtFieldw,
+                        txtFieldh);
             }
             if (nameErr != null) {
                 nameErr.setBounds(rx1, ry1 + txth * 2, txtrw, txth);

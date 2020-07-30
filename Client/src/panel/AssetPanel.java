@@ -65,8 +65,9 @@ public class AssetPanel extends JPanel {
         if (ClientController.TEST_MODE)
             setBorder(BorderFactory.createLineBorder(MyColors.green));
 
-        scoreLabel = new JLabel("Score: 0", SwingConstants.CENTER);
-        scoreLabel.setFont(MyFont.smallScore);
+        scoreLabel = new JLabel("", SwingConstants.CENTER);
+        scoreLabel.setText("<html>" + MyText.getScoreText() + "<font face=\"Courier new\">0</font></html>");
+        scoreLabel.setFont(MyText.getScoreFont());
         scoreLabel.setForeground(MyColors.text);
         setAxis(scoreLabel, 0, y0, textw);
         add(scoreLabel);
@@ -83,17 +84,13 @@ public class AssetPanel extends JPanel {
         setComponentZOrder(literalBG, 1);
         setComponentZOrder(literalPanel, 0);
 
+        score = 0;
         assets = new ArrayList<>();
-        reset();
+        setupLiteralPanel();
+        showChanges();
     }
 
-    public void reset() {
-        score = 0;
-        literalPanel.removeAll();
-
-        assets.clear();
-        scoreLabel.setText("Score: 0");
-
+    private void setupLiteralPanel() {
         int y = 0;
         clubSymbol = new JLabel("\u2663");
         clubSymbol.setName("symb_c");
@@ -169,13 +166,25 @@ public class AssetPanel extends JPanel {
         literalPanel.add(doubleLiterals);
 
         for (final Component comp : literalPanel.getComponents()) {
-            if (comp.getName() != null && comp.getName().substring(0, 5).equals("symb_"))
+            if (comp.getName() != null && comp.getName().contains("symb_"))
                 comp.setFont(MyFont.assetSymb);
             else
                 comp.setFont(MyFont.asset);
 
             ((JLabel) comp).setVerticalAlignment(JLabel.TOP);
         }
+    }
+
+    public void reset() {
+        score = 0;
+        assets.clear();
+        scoreLabel.setText("<html>" + MyText.getScoreText() + "<font face=\"Courier new\">0</font></html>");
+
+        clubAssetLiterals.setText("");
+        diamondAssetLiterals.setText("");
+        spadeAssetLiterals.setText("");
+        heartAssetLiterals.setText("");
+        doubleLiterals.setText("");
 
         showChanges();
     }
@@ -191,7 +200,7 @@ public class AssetPanel extends JPanel {
         addAsset("JD");
         addAsset("QS");
         addAsset("QSx");
-        setExhibition(new String[] { "QSx", "QSx", "JDx", "JDx", "TCx", "TCx" });
+        setShown(new String[] { "QSx", "QSx", "JDx", "JDx", "TCx", "TCx" });
     }
 
     private void setAxis(final JLabel item, final int x, int y, final int... scale) {
@@ -204,11 +213,11 @@ public class AssetPanel extends JPanel {
     public void addAsset(final String alias) {
         assets.add(new Card(alias));
         score = updatePanel();
-        scoreLabel.setText("Score: " + score);
+        scoreLabel.setText("<html>" + MyText.getScoreText() + "<font face=\"Courier new\">" + score + "</font></html>");
         showChanges();
     }
 
-    public void setExhibition(final String[] aliases) {
+    public void setShown(final String[] aliases) {
         if (aliases.length == 0) {
             doubleLiterals.setText("");
             return;

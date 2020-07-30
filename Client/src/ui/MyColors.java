@@ -33,8 +33,8 @@ public class MyColors {
         if (text.length() == 0)
             return "";
 
-        return "<font color=\"rgb(" + color.getRed() + ", " + color.getGreen() + ", " + color.getBlue() + ")\">" + text
-                + "</font>";
+        return "<font face=\"Courier new\" color=\"rgb(" + color.getRed() + ", " + color.getGreen() + ", "
+                + color.getBlue() + ")\">" + text + "</font>";
     }
 
 }

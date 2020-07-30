@@ -3,17 +3,33 @@ package element;
 import java.awt.*;
 import javax.swing.*;
 
+/**
+ * The {@code MaskCircle} class describles a black mask in shape of circle.
+ * 
+ * @author Weizhao Tang
+ */
 public class MaskCircle extends JPanel {
     static final long serialVersionUID = 1L;
 
-    private static final int alhpa = 100;
+    /** opaqueness of circle */
+    private static final int alpha = 100;
 
+    /** width of circle */
     private int w_;
+    /** height of circle */
     private int h_;
 
+    /** original full-opaque color of mask */
     private final Color maskOpaque = Color.BLACK;
-    private Color maskBlack = new Color(maskOpaque.getRed(), maskOpaque.getGreen(), maskOpaque.getBlue(), alhpa);
+    /** semi-translucent color of mask */
+    private Color darkMask = new Color(maskOpaque.getRed(), maskOpaque.getGreen(), maskOpaque.getBlue(), alpha);
 
+    /**
+     * Instantiate a {@code MaskCircle} object given its size.
+     * 
+     * @param w width of the circle (oval)
+     * @param h height of the circle (oval)
+     */
     public MaskCircle(final int w, final int h) {
         super();
         setOpaque(false);
@@ -21,20 +37,26 @@ public class MaskCircle extends JPanel {
         h_ = h;
     }
 
+    /**
+     * Repaint immediately after setting the dimensions of self.
+     * 
+     * @param x x-coordinate
+     * @param y y-coordinate
+     * @param w new width
+     * @param h new height
+     */
     public void setBoundsAndRepaint(final int x, final int y, final int w, final int h) {
         setBounds(x, y, w_ = w, h_ = h);
         repaint();
     }
 
+    /**
+     * Paint a semi-translucent oval.
+     */
     @Override
     protected void paintComponent(final Graphics g) {
         super.paintComponent(g);
-        g.setColor(maskBlack);
+        g.setColor(darkMask);
         g.fillOval(0, 0, w_, h_);
-    }
-
-    @Override
-    public Dimension getPreferredSize() {
-        return new Dimension(w_, h_);
     }
 }

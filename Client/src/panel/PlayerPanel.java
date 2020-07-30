@@ -22,15 +22,16 @@ public class PlayerPanel extends JPanel {
         if (ClientController.TEST_MODE)
             setBorder(BorderFactory.createLineBorder(MyColors.yellow));
 
-        scoreLabel = new JLabel("Total: 0", SwingConstants.CENTER);
+        scoreLabel = new JLabel("<html>" + MyText.getTotalScoreText() + "<font face=\"Courier new\">0</font></html>",
+                SwingConstants.CENTER);
         scoreLabel.setForeground(MyColors.yellow);
-        scoreLabel.setFont(MyFont.smallScore);
+        scoreLabel.setFont(MyText.getScoreFont());
 
         avatar = new ImageLabel();
 
         nameLabel = new JLabel("", SwingConstants.CENTER);
         nameLabel.setForeground(MyColors.text);
-        nameLabel.setFont(nameLabel.getFont().deriveFont(MyFont.Size.userNameLarge));
+        nameLabel.setFont(MyFont.playerName);
 
         add(avatar, PlayerPanelLayout.AVATAR);
         add(scoreLabel, PlayerPanelLayout.TSCORE);
@@ -48,13 +49,14 @@ public class PlayerPanel extends JPanel {
     public void clear() {
         totalScore = 0;
         avatar.setEmptyAvatar();
-        scoreLabel.setText("Total: 0");
+        scoreLabel.setText("<html>" + MyText.getTotalScoreText() + "<font face=\"Courier new\">0</font></html>");
         nameLabel.setText("");
     }
 
     public void setTotalScore(int score) {
         totalScore = score;
-        scoreLabel.setText("Total: " + score);
+        scoreLabel.setText(
+                "<html>" + MyText.getTotalScoreText() + "<font face=\"Courier new\">" + totalScore + "</font></html>");
     }
 
     public int getTotalScore() {

@@ -19,8 +19,7 @@ public class PokerTableLayout implements LayoutManager2 {
 
     public static final String HLABEL = "Hlabel";
     public static final String HBG = "Hbg";
-    public static final String SLABEL = "Slabel";
-    public static final String SBG = "Sbg";
+    public static final String SBOARD = "Scoreboard";
     public static final String PLABEL = "Plabel";
     public static final String PBG = "Pbg";
 
@@ -30,12 +29,12 @@ public class PokerTableLayout implements LayoutManager2 {
     public static final int secHeight = 180;
     public static final int clockWidth = 70;
     public static final int clockHeight = 50;
-    public static final int scoreWidth = 600;
-    public static final int scoreHeight = 300;
+    public static final int scoreWidth = 500;
+    public static final int scoreHeight = 250;
     public static final int helperWidth = 360;
     public static final int helperHeight = 120;
-    public static final int passWidth = 150;
-    public static final int passHeight = 70;
+    public static final int passWidth = 146;
+    public static final int passHeight = 66;
 
     public static final int roundArrowScale = 180;
     public static final int arrowHalfWidth = 23;
@@ -60,8 +59,7 @@ public class PokerTableLayout implements LayoutManager2 {
     Component helperLabel;
     Component helperBackground;
 
-    Component scorePanel;
-    Component scoreBackground;
+    Component scoreboard;
 
     Component passLabel;
     Component passBackground;
@@ -106,10 +104,8 @@ public class PokerTableLayout implements LayoutManager2 {
             }
             if (!hit)
                 throw new IllegalArgumentException("cannot add to layout: constraint \"" + name + "\" not identified");
-        } else if (SBG.equals(name)) {
-            scoreBackground = comp;
-        } else if (SLABEL.equals(name)) {
-            scorePanel = comp;
+        } else if (SBOARD.equals(name)) {
+            scoreboard = comp;
         } else if (HBG.equals(name)) {
             helperBackground = comp;
         } else if (HLABEL.equals(name)) {
@@ -164,22 +160,6 @@ public class PokerTableLayout implements LayoutManager2 {
 
             int zorder = target.getComponentCount() - 1;
 
-            if (westSection != null) {
-                westSection.setBounds(left, (height - secHeight) / 2, secWidth, secHeight);
-                target.setComponentZOrder(westSection, zorder--);
-            }
-            if (eastSection != null) {
-                eastSection.setBounds(right - secWidth, (height - secHeight) / 2, secWidth, secHeight);
-                target.setComponentZOrder(eastSection, zorder--);
-            }
-            if (northSection != null) {
-                northSection.setBounds((width - secWidth) / 2, top, secWidth, secHeight);
-                target.setComponentZOrder(northSection, zorder--);
-            }
-            if (southSection != null) {
-                southSection.setBounds((width - secWidth) / 2, bottom - secHeight, secWidth, secHeight);
-                target.setComponentZOrder(southSection, zorder--);
-            }
             if (cornerClock != null) {
                 cornerClock.setBounds(right - clockWidth - cornerClockGap, bottom - clockHeight - cornerClockGap,
                         clockWidth, clockHeight);
@@ -201,14 +181,25 @@ public class PokerTableLayout implements LayoutManager2 {
                 clocks[3].setBounds(left, (height - clockHeight) / 2, clockWidth, clockHeight);
                 target.setComponentZOrder(clocks[3], zorder--);
             }
-            if (scoreBackground != null) {
-                scoreBackground.setBounds((width - scoreWidth) / 2, (height - scoreHeight) / 2, scoreWidth,
-                        scoreHeight);
-                target.setComponentZOrder(scoreBackground, zorder--);
+            if (westSection != null) {
+                westSection.setBounds(left, (height - secHeight) / 2, secWidth, secHeight);
+                target.setComponentZOrder(westSection, zorder--);
             }
-            if (scorePanel != null) {
-                scorePanel.setBounds((width - scoreWidth) / 2, (height - scoreHeight) / 2, scoreWidth, scoreHeight);
-                target.setComponentZOrder(scorePanel, zorder--);
+            if (eastSection != null) {
+                eastSection.setBounds(right - secWidth, (height - secHeight) / 2, secWidth, secHeight);
+                target.setComponentZOrder(eastSection, zorder--);
+            }
+            if (northSection != null) {
+                northSection.setBounds((width - secWidth) / 2, top, secWidth, secHeight);
+                target.setComponentZOrder(northSection, zorder--);
+            }
+            if (southSection != null) {
+                southSection.setBounds((width - secWidth) / 2, bottom - secHeight, secWidth, secHeight);
+                target.setComponentZOrder(southSection, zorder--);
+            }
+            if (scoreboard != null) {
+                scoreboard.setBounds((width - scoreWidth) / 2, (height - scoreHeight) / 2, scoreWidth, scoreHeight);
+                target.setComponentZOrder(scoreboard, zorder--);
             }
 
             final int x1 = width / 2 - roundArrowScale, x2 = width / 2;

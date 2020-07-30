@@ -1,10 +1,11 @@
 package main;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.SwingWorker;
+
+import ui.*;
 
 /**
  * Client objects connect to the server and coordinate between the client model
@@ -12,26 +13,38 @@ import javax.swing.SwingWorker;
  *
  * @author Weizhao Tang
  */
-
 public class ClientController {
-    private static final String DEFAULT_SERVER_ADDRESS = "localhost"; // default server address
-    private static final int DEFAULT_SERVER_PORT = 23366; // default server port
-    private final String serverAddress; // server address
-    private final int serverPort; // server port
+    /** default server address */
+    private static final String DEFAULT_SERVER_ADDRESS = "localhost";
+    /** default server port */
+    private static final int DEFAULT_SERVER_PORT = 23366;
+    /** server address */
+    private final String serverAddress;
+    /** server port */
+    private final int serverPort;
 
+    /** prefix of message from server */
     public static final String RECV_PREFIX = "SERVERMESSAGE";
+    /** delimiter of items in incoming message */
     public static final String RECV_DELIM = "==";
+    /** prefix of message to server */
     public static final String SEND_PREFIX = "FROMCLIENT";
+    /** delimiter of items in outgoing message */
     public static final String SEND_DELIM = "~~";
 
+    /** flag indicating if in test mode */
     public static boolean TEST_MODE = false;
+    /** number of cards in each hand */
     public static int numCards = 26;
 
+    /** status flag indicating if self is waiting for a game to start */
     private boolean waitingForReady = false;
-
+    /** number of card decks each frame */
     public static int numDecks = 2;
 
-    private ClientView view; // client GUI view
+    /** client GUI frame */
+    private ClientView view;
+    /** client model handling communication */
     private ClientModel model;
 
     /**
@@ -40,12 +53,14 @@ public class ClientController {
      * @param serverAddress Server address
      * @param serverPort    Server port
      */
-
     public ClientController(final String serverAddress, final int serverPort) {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
     }
 
+    /**
+     * Start a Swing worker that listens to server.
+     */
     private void getServerMessage() {
         final SwingWorker<String, String> swingWorker = new SwingWorker<>() {
             @Override
@@ -66,15 +81,23 @@ public class ClientController {
         swingWorker.execute();
     }
 
+    /**
+     * Send message to server.
+     * 
+     * @param items message items to pack
+     */
     public void sendToServer(final String... items) {
-        System.err.println("To Server: " + String.join(", ", items));
+        if (ClientController.TEST_MODE)
+            System.err.println("To Server: " + String.join(", ", items));
+
         model.sendToServer(items);
     }
 
-    public void sendToServer(final ArrayList<String> items) {
-        model.sendToServer(items);
-    }
-
+    /**
+     * React to incoming message.
+     * 
+     * @param serverMessage Message from server
+     */
     private void changeView(final String serverMessage) {
         if (serverMessage == null)
             return;
@@ -88,7 +111,7 @@ public class ClientController {
 
         switch (items[1]) {
             case "WELCOME":
-                view.showWelcomePanel();
+                view.showWelcomePanel(); // Open window upon receipt
                 break;
             case "TAKESEAT":
                 view.sitDown(Integer.parseInt(items[2]));
@@ -100,7 +123,7 @@ public class ClientController {
                 view.setPlayerInfo(seatIndex, avtIndex, name);
                 break;
             case "DONOTSIT":
-                view.setSeatErrMsg("Failed to sit down");
+                view.showSeatErrMsg();
                 break;
             case "NEWFRAME":
                 waitingForReady = true;
@@ -111,17 +134,18 @@ public class ClientController {
                 view.setReady(seatIndex);
                 view.enableHandControl(false);
                 break;
-            case "DEAL":
+            case "DEAL": // Start dealing cards
                 waitingForReady = false;
                 view.resetForNewFrame();
+                view.setNumDealingCards(Integer.parseInt(items[2]));
                 break;
-            case "ADD":
+            case "ADD": // Deal one card
                 if (view.addCard(items[2])) {
                     sendToServer("ALLDEALT");
-                    view.setFirstRound(true);
+                    // view.setFirstRound(true);
                 }
                 break;
-            case "TRADESTART":
+            case "TRADESTART": // Start trading
                 view.enterTradingPhase(Integer.parseInt(items[2]), Integer.parseInt(items[3]));
                 view.enableHandControl(true);
                 break;
@@ -131,15 +155,18 @@ public class ClientController {
             case "TRADEIN":
                 view.tradeInCards(getSubStrArray(items, 2));
                 break;
-            case "EXHIBIT":
+            case "EXHIBIT": // Start showing
                 view.enableHandControl(true);
                 view.enterShowingPhase(Integer.parseInt(items[2]));
                 break;
             case "SHOWN":
                 absLoc = Integer.parseInt(items[2]);
-                view.showExhibitedCards(absLoc, getSubStrArray(items, 3));
+                view.displayShownCards(absLoc, getSubStrArray(items, 3));
                 break;
-            case "ASSET":
+            case "OPENING":
+                view.openFrame(Integer.parseInt(items[3]), Integer.parseInt(items[2]));
+                break;
+            case "ASSET": // Start a new round and record assets of last round
                 timeLimit = Integer.parseInt(items[2]);
                 absLoc = Integer.parseInt(items[3]);
                 view.addAsset(absLoc, timeLimit, getSubStrArray(items, 4));
@@ -155,18 +182,24 @@ public class ClientController {
                 waitingForReady = true;
                 view.setTotalScore(getSubStrArray(items, 2));
                 break;
-            case "CONNRESET":
+            case "CONNRESET": // Received when a player stops connection to server
                 absLoc = Integer.parseInt(items[2]);
-                view.resetForPeer(absLoc, waitingForReady);
+                view.resetForDisconnection(absLoc, waitingForReady);
                 break;
             case "GAMEOVER":
                 System.err.println("GAMEOVER");
                 System.exit(1);
         }
-
         getServerMessage();
     }
 
+    /**
+     * Obtain the subarray of given array.
+     * 
+     * @param items Origial array of items
+     * @param start Starting index of subarray
+     * @return Subarray
+     */
     private String[] getSubStrArray(final String[] items, final int start) {
         if (start >= items.length)
             return new String[0];
@@ -177,7 +210,6 @@ public class ClientController {
     /**
      * Sets up the client GUI and gets the first message from the server.
      */
-
     public void start() {
         System.out.println("Starting client\n");
         view = new ClientView(this);
@@ -190,7 +222,6 @@ public class ClientController {
      *
      * @param args String array of arguments passed to the client
      */
-
     public static void main(final String[] args) {
         String serverAddress = DEFAULT_SERVER_ADDRESS;
         int serverPort = DEFAULT_SERVER_PORT;
@@ -200,7 +231,7 @@ public class ClientController {
             try {
                 argument = args[i + 1];
             } catch (final ArrayIndexOutOfBoundsException e) {
-                System.err.println("Options: [-a serverAddress] [-p serverPort]");
+                System.err.println("Options: [-a serverAddress] [-p serverPort] [-l (en|ch)]");
                 System.exit(1);
             }
             switch (option) {
@@ -227,12 +258,24 @@ public class ClientController {
                         System.exit(1);
                     }
                     break;
+                case "-l":
+                    if (argument.strip().toLowerCase().equals("en"))
+                        MyText.language = 0;
+                    else if (argument.strip().toLowerCase().equals("ch"))
+                        MyText.language = 1;
+                    else {
+                        System.err.println("Language must be en(English) or ch(Chinese)");
+                        System.exit(1);
+                    }
+                    break;
                 default:
-                    System.err.println("Options: [-a serverAddress] [-p serverPort]");
+                    System.err.println("Options: [-a serverAddress] [-p serverPort] [-l (en|ch)]");
                     System.exit(1);
                     break;
             }
         }
+
+        MyFont.registerFont();
 
         final ClientController controller = new ClientController(serverAddress, serverPort);
         controller.start();

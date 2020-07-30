@@ -33,12 +33,12 @@ public class SeatPanel extends JPanel {
 
         playerName = new JLabel("", SwingConstants.CENTER);
         playerName.setForeground(MyColors.text);
-        playerName.setFont(playerName.getFont().deriveFont(MyFont.Size.userNameSmall));
+        playerName.setFont(MyFont.seatName);
         playerName.setBounds(0, avtScale, w_, buttonheight);
 
-        sitButton = new JButton("Sit");
+        sitButton = new JButton(MyText.getSitButtonLabel());
         sitButton.setBounds((w_ - avtScale) / 2, avtScale, avtScale, buttonheight);
-        sitButton.setFont(playerName.getFont().deriveFont(MyFont.Size.button));
+        sitButton.setFont(MyText.getSitButtonFont());
         sitButton.setName("sitButton_" + index);
         sitButton.addActionListener(view);
 

@@ -18,7 +18,8 @@ public class RulePanel extends JPanel {
     private static final int texth = (h_ - 2 * insetScale) / 6;
     private static final int textlw = w_ / 2 - insetScale + 6;
     private static final int textrw = w_ / 2 - insetScale - 6;
-    private static final int textGap = 5;
+    private static final int textwOverflow = 10;
+    private static final int textGap = 7;
     private static final int splitterYOffset = 2;
 
     private final BackgroundRect background;
@@ -35,9 +36,9 @@ public class RulePanel extends JPanel {
         background.setBounds(0, 0, w_, h_);
         add(background);
 
-        JLabel title = new JLabel("Base Effects", SwingConstants.CENTER);
+        JLabel title = new JLabel(MyText.getRuleTitle(), SwingConstants.CENTER);
         title.setForeground(MyColors.tableGreen);
-        title.setBounds(insetScale, insetScale, textlw + textrw, texth);
+        title.setBounds(insetScale, 0, textlw + textrw, texth);
         title.setVerticalAlignment(JLabel.TOP);
         add(title);
 
@@ -105,6 +106,8 @@ public class RulePanel extends JPanel {
             comp.setFont(MyFont.rule);
         }
 
+        title.setFont(MyText.getRuleTitleFont());
+
         setComponentZOrder(background, getComponentCount() - 1);
         revalidate();
         repaint();
@@ -112,10 +115,10 @@ public class RulePanel extends JPanel {
     }
 
     private void setLeftAxis(final JLabel item, int y) {
-        item.setBounds(insetScale, y + insetScale, textlw, texth);
+        item.setBounds(insetScale, y + insetScale, textlw + textwOverflow, texth);
     }
 
     private void setRightAxis(final JLabel item, int y) {
-        item.setBounds(insetScale + textlw + textGap, y + insetScale, textrw - textGap, texth);
+        item.setBounds(insetScale + textlw + textGap, y + insetScale, textrw - textGap + textwOverflow, texth);
     }
 }

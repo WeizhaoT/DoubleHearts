@@ -1,16 +1,14 @@
 package main;
 
 import java.io.*;
-import java.net.Socket;
-import java.net.SocketException;
+import java.net.*;
 import java.util.ArrayList;
 
 /**
- * ClientModel objects hold client information.
+ * A {@code ClientModel} object handles communication with server.
  *
  * @author Weizhao Tang
  */
-
 public class ClientModel {
     private static final int MESSAGE_WAIT_TIME = 300; // time to wait between server messages
     private Socket socket; // socket on server address and port
@@ -23,7 +21,6 @@ public class ClientModel {
      * @param serverAddress Server address
      * @param serverPort    Server port
      */
-
     public ClientModel(final String serverAddress, final int serverPort) {
         try {
             socket = new Socket(serverAddress, serverPort);
@@ -47,7 +44,6 @@ public class ClientModel {
      *
      * @return message sent by the server
      */
-
     public String getServerMessage() {
         String serverMessage = null;
         try {
@@ -56,7 +52,7 @@ public class ClientModel {
                 serverMessage = in.readLine();
 
             final String[] items = serverMessage.split(ClientController.RECV_DELIM);
-            if (!items[1].equals("ADD"))
+            if (!items[1].equals("ADD") && ClientController.TEST_MODE)
                 System.err.println("From Server: " + serverMessage);
         } catch (final SocketException e) {
             if (e.getMessage().contains("Connection reset")) {
@@ -73,12 +69,12 @@ public class ClientModel {
     /**
      * Sends a message to the server.
      *
-     * @param clientMessage Message to send to server
+     * @param items Message pieces to be packed together
      */
-
     public void sendToServer(final String... items) {
         final ArrayList<String> filteredMsgs = new ArrayList<>();
 
+        // Remove empty items
         for (final String msg : items) {
             if (msg.length() > 0)
                 filteredMsgs.add(msg);
@@ -90,15 +86,9 @@ public class ClientModel {
         out.println(output);
     }
 
-    public void sendToServer(final ArrayList<String> items) {
-        out.println(ClientController.SEND_PREFIX + ClientController.SEND_DELIM
-                + String.join(ClientController.SEND_DELIM, items));
-    }
-
     /**
      * Sends a message to the server to quit the game and closes the socket.
      */
-
     public void quitGame() {
         sendToServer("QUIT");
         try {

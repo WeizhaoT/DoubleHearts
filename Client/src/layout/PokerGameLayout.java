@@ -17,6 +17,7 @@ public class PokerGameLayout implements LayoutManager2 {
     public static final String[] ALLASSETS = new String[] { SASSET, EASSET, NASSET, WASSET };
 
     public static final String RULE = "RULE";
+    public static final String SPEAKER = "SPEAKER";
     public static final String HAND = "HAND";
     public static final String CENTER = "CENTER";
 
@@ -29,6 +30,9 @@ public class PokerGameLayout implements LayoutManager2 {
 
     public static final int rulew = 200;
     public static final int ruleh = 160;
+
+    public static final int speakerw = 60;
+    public static final int speakerh = 60;
 
     public static final int handh = 200;
     public static final int handw = 700;
@@ -56,6 +60,8 @@ public class PokerGameLayout implements LayoutManager2 {
     Component westAsset;
 
     Component rule;
+    Component speaker;
+
     Component hand;
     Component center;
 
@@ -117,6 +123,9 @@ public class PokerGameLayout implements LayoutManager2 {
                 return;
             case RULE:
                 rule = comp;
+                return;
+            case SPEAKER:
+                speaker = comp;
                 return;
             case HAND:
                 hand = comp;
@@ -213,6 +222,10 @@ public class PokerGameLayout implements LayoutManager2 {
             if (rule != null) {
                 rule.setBounds(cleft, top + (toph - ruleh) / 2, rulew, ruleh);
                 target.setComponentZOrder(rule, zorder--);
+            }
+            if (speaker != null) {
+                speaker.setBounds(right - speakerw, top, speakerw, speakerh);
+                target.setComponentZOrder(speaker, zorder--);
             }
             if (hand != null) {
                 hand.setBounds((width - handw) / 2, bottom + handYOffset, handw, handh);

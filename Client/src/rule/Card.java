@@ -1,100 +1,27 @@
 package rule;
 
-import main.ClientController;
-
 import java.io.IOException;
 import java.util.*;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
 
 /**
  * Card objects represent a standard playing card with a rank and a suit.
  *
- * @author Jordan Segalman
+ * @author Weizhao Tang
  */
 
 public class Card {
+    public static final int NONE = 0;
+
     private final Rank rank; // rank of the card
     private final Suit suit; // suit of the card
     public boolean bid = false;
 
     public static class CardComparator implements Comparator<Card> {
         public int compare(final Card c1, final Card c2) {
-            if (c1.weight() < c2.weight())
-                return 1;
-            else
-                return -1;
+            return c1.weight() == c2.weight() ? 0 : (c1.weight() < c2.weight() ? 1 : -1);
         }
-    }
-
-    public static int roundResult(final ArrayList<ArrayList<Card>> cardSets, final int leader) {
-        final ArrayList<Card> leadCards = cardSets.get(0);
-        final Card leadCard = leadCards.get(0);
-
-        int maxRank = leadCard.rank.value;
-
-        final int numPlayers = cardSets.size();
-        final int roundSize = leadCards.size();
-        int winner = 0;
-
-        if (roundSize == 1) {
-            for (int i = 1; i < numPlayers; i++) {
-                final Card followedCard = cardSets.get(i).get(0);
-                if (followedCard.suit != leadCard.suit)
-                    continue;
-
-                if (followedCard.rank.value > maxRank) {
-                    winner = i;
-                    maxRank = followedCard.rank.value;
-                }
-            }
-        } else if (roundSize == 2) {
-            assert isPair(leadCards);
-
-            boolean isPair = true;
-
-            for (int i = 1; i < numPlayers; i++) {
-                boolean sameSuit = true;
-                final ArrayList<Card> cards = cardSets.get(i);
-
-                for (final Card card : cards) {
-                    if (card.suit != leadCard.suit) {
-                        sameSuit = false;
-                        break;
-                    }
-                }
-
-                if (!sameSuit)
-                    continue;
-
-                final Rank followedRank1 = cards.get(0).rank;
-                final Rank followedRank2 = cards.get(1).rank;
-
-                final boolean followedPair = followedRank1 == followedRank2;
-
-                if (isPair) {
-                    if (followedPair) {
-                        if (followedRank1.value > maxRank) {
-                            winner = i;
-                            maxRank = followedRank1.value;
-                        }
-                    } else {
-                        isPair = false;
-                        winner = i;
-                        maxRank = Integer.max(followedRank1.value, followedRank2.value);
-                    }
-                } else if (!followedPair) {
-                    final int topRank = Integer.max(followedRank1.value, followedRank2.value);
-
-                    if (topRank > maxRank) {
-                        maxRank = topRank;
-                        winner = i;
-                    }
-                }
-            }
-        }
-        return (winner + leader) % numPlayers;
     }
 
     /**
@@ -268,9 +195,6 @@ public class Card {
     }
 
     public boolean forbiddenInFirstRound() {
-        if (ClientController.TEST_MODE)
-            return false;
-
         return isSheep() || isPig() || isScoredHeart();
     }
 
@@ -322,6 +246,107 @@ public class Card {
 
     public String fullAlias() {
         return rank.alias() + suit.alias() + (bid ? "x" : "");
+    }
+
+    public static HashSet<Card> getHintFeasible(final ArrayList<Card> cards, final ArrayList<Card> leadSet,
+            HashSet<Card> selected, final boolean firstRound) {
+
+        HashSet<Card> emptyFeasible = getFeasible(cards, leadSet, null, firstRound);
+        if (leadSet == null || emptyFeasible.size() >= leadSet.size())
+            return emptyFeasible;
+
+        assert (emptyFeasible.size() == 1 && leadSet.size() == 2);
+        if (selected == null || !selected.contains(emptyFeasible.iterator().next())) {
+            return emptyFeasible;
+        } else {
+            final HashSet<Card> feasible = getFeasible(cards, leadSet, emptyFeasible, firstRound);
+            feasible.addAll(emptyFeasible);
+            return feasible;
+        }
+    }
+
+    public static HashSet<Card> getFeasible(final ArrayList<Card> cards, final ArrayList<Card> leadSet,
+            HashSet<Card> selected, final boolean firstRound) {
+        if (selected == null)
+            selected = new HashSet<>();
+
+        final int numSelected = selected.size();
+        if (numSelected >= 2)
+            return new HashSet<>();
+
+        if (leadSet == null || leadSet.isEmpty()) {
+            if (firstRound) {
+                final HashSet<Card> twoOfClubs = new HashSet<>();
+                for (final Card card : cards) {
+                    if (card.weakEquals("2C") && !selected.contains(card))
+                        twoOfClubs.add(card);
+                }
+                return twoOfClubs;
+            } else if (numSelected == 0) {
+                return new HashSet<>(cards);
+            } else {
+                String selectedAlias = selected.isEmpty() ? null : selected.iterator().next().alias();
+
+                for (final Card card : cards) {
+                    if (selected.contains(card)) {
+                        continue;
+                    } else if (card.weakEquals(selectedAlias)) {
+                        return new HashSet<>(Arrays.asList(card));
+                    }
+                }
+                return new HashSet<>();
+            }
+        } else {
+            final Suit leadSuit = leadSet.get(0).suit;
+            if (leadSet.size() == 1) {
+                if (numSelected >= 1)
+                    return new HashSet<>();
+
+                final HashSet<Card> sameSuitFeasible = new HashSet<>();
+                final HashSet<Card> otherSuitFeasible = new HashSet<>();
+                for (final Card card : cards) {
+                    if (card.suit == leadSuit) {
+                        sameSuitFeasible.add(card);
+                    } else if (!(firstRound && card.forbiddenInFirstRound())) {
+                        otherSuitFeasible.add(card);
+                    }
+                }
+
+                return sameSuitFeasible.isEmpty()
+                        ? (otherSuitFeasible.isEmpty() ? new HashSet<>(cards) : otherSuitFeasible)
+                        : sameSuitFeasible;
+            } else {
+                Card existing = null;
+                String selectedAlias = selected.isEmpty() ? null : selected.iterator().next().alias();
+                final HashSet<Card> otherSuitFeasible = new HashSet<>();
+                final HashSet<Card> sameSuitPairs = new HashSet<>();
+                final HashMap<String, Card> sameSuitMap = new HashMap<>();
+
+                for (final Card card : cards) {
+                    if (selected.contains(card) || card.suit != leadSuit) {
+                        if (!selected.contains(card) && !(firstRound && card.forbiddenInFirstRound())) {
+                            otherSuitFeasible.add(card);
+                        }
+                        continue;
+                    }
+
+                    if ((existing = sameSuitMap.get(card.alias())) != null) {
+                        sameSuitPairs.addAll(Arrays.asList(card, existing));
+                    } else {
+                        sameSuitMap.put(card.alias(), card);
+                    }
+                }
+
+                if (sameSuitMap.isEmpty()) {
+                    return otherSuitFeasible.isEmpty() ? new HashSet<>(cards) : otherSuitFeasible;
+                } else if (selectedAlias == null || !sameSuitMap.containsKey(selectedAlias)) {
+                    return new HashSet<>(sameSuitPairs.isEmpty() ? sameSuitMap.values() : sameSuitPairs);
+                } else {
+                    existing = sameSuitMap.get(selectedAlias);
+                    return new HashSet<>(existing == null ? sameSuitMap.values() : Arrays.asList(existing));
+                }
+            }
+        }
     }
 
     /**

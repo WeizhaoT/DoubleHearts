@@ -2,6 +2,7 @@ package panel;
 
 import ui.*;
 import rule.Card;
+import element.MaskedCard;
 import layout.PokerTableLayout;
 
 import java.awt.*;
@@ -37,11 +38,10 @@ public class TableSectionPanel extends JPanel {
     private static final int w_ = PokerTableLayout.secWidth;
     private static final int h_ = PokerTableLayout.secHeight;
     private static final int cardGap = HandPanel.cardGap;
-    private static final int maxRoundw = CardPanel.w_ + 25 * cardGap;
+    private static final int maxRoundw = MaskedCard.w_ + 25 * cardGap;
     private static final int tableSecPad = (w_ - maxRoundw) / 2;
-    private static final int tableSecTop = (h_ - CardPanel.h_) / 2;
+    private static final int tableSecTop = (h_ - MaskedCard.h_) / 2;
 
-    private static final float fontSize = 28.0f;
     private static final int textw = 300;
     private static final int texth = 40;
 
@@ -57,7 +57,7 @@ public class TableSectionPanel extends JPanel {
 
         textLabel = new JLabel();
         textLabel.setForeground(MyColors.yellow);
-        textLabel.setFont(textLabel.getFont().deriveFont(fontSize));
+        textLabel.setFont(MyText.getSecTextFont());
 
         int x, y, alignment;
         if (position == Position.LEFT) {
@@ -166,16 +166,16 @@ public class TableSectionPanel extends JPanel {
             if (position == Position.LEFT)
                 x = tableSecPad;
             else if (position == Position.RIGHT)
-                x = w_ - tableSecPad - CardPanel.w_ - cardGap * (numCards - 1);
+                x = w_ - tableSecPad - MaskedCard.w_ - cardGap * (numCards - 1);
             else
-                x = (w_ - CardPanel.w_ - cardGap * (numCards - 1)) / 2;
+                x = (w_ - MaskedCard.w_ - cardGap * (numCards - 1)) / 2;
 
             final ArrayList<Card> cardList = new ArrayList<>();
-            final HashMap<Card, CardPanel> cardMap = new HashMap<>();
+            final HashMap<Card, MaskedCard> cardMap = new HashMap<>();
 
             for (int i = 0; i < aliases.length; i++) {
                 final Card card = new Card(aliases[i]);
-                final CardPanel cardObj = new CardPanel(aliases[i]);
+                final MaskedCard cardObj = new MaskedCard(aliases[i]);
                 cardObj.setName("card_" + aliases[i]);
                 cardObj.setVisible(!historyShown);
                 cardMap.put(card, cardObj);
@@ -186,9 +186,9 @@ public class TableSectionPanel extends JPanel {
             cardList.sort(new Card.CardComparator());
 
             for (int i = 0; i < aliases.length; i++) {
-                final CardPanel cardObj = cardMap.get(cardList.get(aliases.length - i - 1));
+                final MaskedCard cardObj = cardMap.get(cardList.get(aliases.length - i - 1));
                 setComponentZOrder(cardObj, aliases.length - i - 1);
-                cardObj.setBounds(x, tableSecTop, CardPanel.w_, CardPanel.h_);
+                cardObj.setBounds(x, tableSecTop, MaskedCard.w_, MaskedCard.h_);
                 x += cardGap;
             }
         }
@@ -203,19 +203,14 @@ public class TableSectionPanel extends JPanel {
         showChanges();
     }
 
-    public void showWait() {
-        status = Status.WAIT;
-        showText("WAITING&hellip;");
-    }
-
     public void showReady() {
         status = Status.READY;
-        showText("READY");
+        showText(MyText.getReadyText());
     }
 
     public void showPass() {
         status = Status.PASS;
-        showText("PASS");
+        showText(MyText.getPassText());
     }
 
     public boolean isIdle() {
