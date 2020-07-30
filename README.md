@@ -60,6 +60,8 @@ For instance, when a round is led by &#x2666;88, &#x2666;K &#x2665;A < &#x2666;8
 
 After dealing all cards, each player chooses 3 cards to pass to another player. The number of hands dealt decides to whom to pass the cards. 
 
+Note that card passing is not commonly included in the game. Consider it as some additional seasoning in a meal that is already delicious. 
+
 #### Exposure of Special Scored Cards
 
 **&#x2663;10, &#x2666;J, &#x2660;Q** are considered special scored cards because they are all the unique scored cards in their respective suits. After card trading, the players choose to expose an arbitrary combination of the special cards in their hands. Exposed cards will be public and enjoy double effects:
@@ -68,7 +70,7 @@ After dealing all cards, each player chooses 3 cards to pass to another player. 
 | :--------: | :-------: | :-------: |
 | x4 | +200 | -200 |
 
-Note that there exists alternative rules where an exposure will cause all cards with the same face to be doubled. It is also allowed to expose &#x2665;A in some other rules, which results in doubled penalty of the entire heart suit. This, however, is considered imbalanced in this implementation, because you can easily get large negative scores in a single deal with exposed cards. In such cases, the exposing skill is too much more emphasized than the playing skill. 
+Note that there exists alternative rules where an exposure will cause all cards with the same face to be doubled. It is also allowed to expose &#x2665;A in some other rules, which results in doubled penalty of the entire heart suit. This, however, is considered imbalanced in this implementation, because you can easily get large negative scores in a single deal with exposed cards. In such cases, luck and exposure is too much more emphasized than playing the cards. 
 
 ## Usage
 Run server at port `32266`: (default port is `23366`)
