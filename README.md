@@ -15,9 +15,9 @@ The player who played card(s) of the highest value wins the round (trick), takes
 
  - Generally, each round should be lead with a single card (e.g., &#x2660;9) or a pair of identical cards (e.g. &#x2666;77). 
  - Generally, the followers must follow with **same number of** cards in the **same suit** as the leading card(s). 
-    - If a follower's hand is empty in the leading suit, he can **discard**, i.e., play cards from another suit. 
-       - If the leading cards are a pair (e.g., &#x2660;99) while the follower has only 1 card (e.g., &#x2660;K) in the leading suit, he must play the remaining card and select another card to discard. This mixed play will still be regarded as discarding.
     - If the round is led by a pair, the follower **must follow with a pair in the leading suit** when he has one. 
+    - If a follower's hand is empty in the leading suit, he can **discard**, i.e., play cards from another suit. 
+       - If the leading cards are a pair (e.g., &#x2660;99) while the follower has only 1 card in the leading suit (e.g., &#x2660;K), he must play the remaining card (&#x2660;K) and select another card (e.g., &#x2665;J) to discard. This mixed playing will still be regarded as discarding.
        
  - The first leader is a random &#x2663;2 owner who must lead the first round with one or two &#x2663;2(s). 
  - In the first round, when running out of the &#x2663; suit, the followers must not follow with &#x2666;J, &#x2660;Q or &#x2665;5-A.
