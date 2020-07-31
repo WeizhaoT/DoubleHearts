@@ -70,7 +70,7 @@ Note that card passing is not commonly included in the game. Consider it as some
 | :--------: | :-------: | :-------: |
 | x4 | +200 | -200 |
 
-Note that there exists alternative rules where an exposure will cause all cards with the same face to be doubled. It is also allowed to expose &#x2665;A in some other rules, which results in doubled penalty of the entire heart suit. This, however, is considered imbalanced in this implementation, because you can easily get large negative scores in a single deal with exposed cards. In such cases, luck and exposure is too much more emphasized than playing the cards. 
+Note that there exists alternative rules where an exposure will cause all cards with the same face to be doubled. It is also allowed to expose &#x2665;A in some other rules, which results in doubled penalty of the entire heart suit. This, however, is considered imbalanced in this implementation, because you can easily get large negative scores in a single deal with exposed cards. In such cases, luck and exposure is too much more emphasized than playing the cards in the optimal order. 
 
 ## Usage
 Run server at port `32266`: (default port is `23366`)
