@@ -18,6 +18,7 @@ public class Server {
     public static final String SEND_DELIM = "==";
     public static final String RECV_DELIM = "~~";
 
+    public static int numDecks = 2;
     public static int numCards = 26;
     public static boolean TEST_MODE = false;
 
@@ -47,7 +48,7 @@ public class Server {
         }
         try {
             System.out.println("Listening on port " + serverPort);
-            final Table newTable = new Table();
+            final Table newTable = new Table(numDecks);
             final Thread newTableThread = new Thread(newTable);
             newTable.setTabThread(newTableThread);
             newTableThread.start();
@@ -83,7 +84,7 @@ public class Server {
             try {
                 argument = args[i + 1];
             } catch (final ArrayIndexOutOfBoundsException e) {
-                System.err.println("Options: [-p serverPort]");
+                System.err.println("Options: [-p serverPort] [-d numDecks]");
                 System.exit(1);
             }
             switch (option) {
@@ -92,6 +93,17 @@ public class Server {
                         serverPort = Integer.parseInt(argument);
                     } catch (final NumberFormatException e) {
                         System.err.println("Server port must be an integer");
+                        System.exit(1);
+                    }
+                    break;
+                case "-d":
+                    try {
+                        numDecks = Integer.parseInt(argument);
+                        if (numDecks != 1 && numDecks != 2) {
+                            throw new NumberFormatException();
+                        }
+                    } catch (final NumberFormatException e) {
+                        System.err.println("Num Decks must be 1 or 2");
                         System.exit(1);
                     }
                     break;
@@ -108,7 +120,7 @@ public class Server {
                     }
                     break;
                 default:
-                    System.err.println("Options: [-p serverPort]");
+                    System.err.println("Options: [-p serverPort] [-d numDecks]");
                     System.exit(1);
                     break;
             }

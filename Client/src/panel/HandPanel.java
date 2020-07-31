@@ -58,11 +58,11 @@ public class HandPanel extends JPanel implements ActionListener {
     private ButtonMode buttonMode = ButtonMode.NONE;
 
     private enum MaskMode {
-        NORMAL, ALL, SHOWABLE, TRADE,
+        NORMAL, ALL, EXPOSABLE, TRADE,
     }
 
     private enum ButtonMode {
-        NONE, READY, TRADE, SHOW, PLAY,
+        NONE, READY, TRADE, EXPOSE, PLAY,
     }
 
     /**
@@ -328,9 +328,9 @@ public class HandPanel extends JPanel implements ActionListener {
         return MyText.NORMAL;
     }
 
-    private int checkShowRule() {
+    private int checkExposeRule() {
         for (final Card card : selectedCards) {
-            if (!card.isShowable()) {
+            if (!card.isExposable()) {
                 return MyText.ILLEGAL_SHOWING;
             }
         }
@@ -349,7 +349,7 @@ public class HandPanel extends JPanel implements ActionListener {
     public void updateFeasibleCard() {
         if (maskMode == MaskMode.ALL) {
             setAllCardsFeasible();
-        } else if (maskMode == MaskMode.SHOWABLE) {
+        } else if (maskMode == MaskMode.EXPOSABLE) {
             setShowablesFeasible();
         } else if (maskMode == MaskMode.TRADE) {
             setMaxNCardsFeasible();
@@ -369,7 +369,7 @@ public class HandPanel extends JPanel implements ActionListener {
 
     private void setShowablesFeasible() {
         for (final Card card : cardObjMap.keySet()) {
-            cardObjMap.get(card).setLightened(card.isShowable());
+            cardObjMap.get(card).setLightened(card.isExposable());
         }
     }
 
@@ -398,7 +398,7 @@ public class HandPanel extends JPanel implements ActionListener {
     }
 
     public void enableShowButton() {
-        buttonMode = ButtonMode.SHOW;
+        buttonMode = ButtonMode.EXPOSE;
         midButton.setEnabled(true);
         midButton.setVisible(true);
         updateButton();
@@ -501,8 +501,8 @@ public class HandPanel extends JPanel implements ActionListener {
     private void updateButton() {
         if (buttonMode == ButtonMode.PLAY) {
             midButton.setEnabled(selectedCards.size() > 0);
-        } else if (buttonMode == ButtonMode.SHOW) {
-            midButton.setText(MyText.getButtonLabel(selectedCards.size() > 0 ? "SHOW" : "PASS"));
+        } else if (buttonMode == ButtonMode.EXPOSE) {
+            midButton.setText(MyText.getButtonLabel(selectedCards.size() > 0 ? "EXPOSE" : "PASS"));
         } else if (buttonMode == ButtonMode.TRADE) {
             midButton.setEnabled(selectedCards.size() == nTrade);
         }
@@ -520,10 +520,10 @@ public class HandPanel extends JPanel implements ActionListener {
         }
     }
 
-    public void confirmShownCards() {
+    public void confirmExposedCards() {
         for (final Card card : selectedCards) {
             final MaskedCard cardObj = cardObjMap.get(card);
-            card.bidCard();
+            card.exposeCard();
             cardObj.setIlluminate(true);
         }
         putAllCards();
@@ -635,8 +635,8 @@ public class HandPanel extends JPanel implements ActionListener {
                     selectedCards.clear();
                 }
                 break;
-            case SHOW:
-                if (selectedCards.isEmpty() || (errCode = checkShowRule()) == MyText.NORMAL) {
+            case EXPOSE:
+                if (selectedCards.isEmpty() || (errCode = checkExposeRule()) == MyText.NORMAL) {
                     disableMidButton();
                     if (selectedCards.isEmpty())
                         controller.sendToServer("SHOW");

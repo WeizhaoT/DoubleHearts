@@ -19,7 +19,7 @@ public class Shoe {
     public Shoe(final int numDecks) {
         for (final Card.Suit suit : Card.Suit.values()) {
             for (final Card.Rank rank : Card.Rank.values()) {
-                for (int i = 0; i < 2; i++) {
+                for (int i = 0; i < numDecks; i++) {
                     shoe.add(new Card(rank, suit));
                     numCards++;
                 }

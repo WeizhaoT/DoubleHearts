@@ -137,7 +137,7 @@ public class ClientController {
             case "DEAL": // Start dealing cards
                 waitingForReady = false;
                 view.resetForNewFrame();
-                view.setNumDealingCards(Integer.parseInt(items[2]));
+                view.setNumDealingCards(Integer.parseInt(items[2]), Integer.parseInt(items[3]));
                 break;
             case "ADD": // Deal one card
                 if (view.addCard(items[2])) {

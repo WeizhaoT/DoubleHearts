@@ -440,8 +440,11 @@ public class ClientView extends JFrame implements ActionListener {
      * 
      * @param num number of cards
      */
-    public void setNumDealingCards(final int num) {
-        handPanel.setNumDealingCards(num);
+    public void setNumDealingCards(final int numCards, final int numDecks) {
+        handPanel.setNumDealingCards(numCards);
+        for (AssetPanel assetPanel : assetPanels) {
+            assetPanel.setNumDecks(numDecks);
+        }
     }
 
     /**
@@ -569,7 +572,7 @@ public class ClientView extends JFrame implements ActionListener {
      */
     public void enterShowingPhase(final int timeLimit) {
         numShown = 0;
-        handPanel.setMaskMode("SHOWABLE");
+        handPanel.setMaskMode("EXPOSABLE");
         handPanel.enableShowButton();
         centerPanel.setCornerTimer(timeLimit);
         centerPanel.setErrMsg(MyText.HINT_SHOWING);
@@ -595,7 +598,7 @@ public class ClientView extends JFrame implements ActionListener {
         if (playerIndex == 0) {
             handPanel.disableMidButton();
             handPanel.enableMouseControl(true);
-            handPanel.confirmShownCards();
+            handPanel.confirmExposedCards();
             centerPanel.setErrMsg(MyText.NORMAL);
         }
         if (++numShown == 4) {

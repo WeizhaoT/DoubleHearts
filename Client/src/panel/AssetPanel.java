@@ -34,6 +34,7 @@ public class AssetPanel extends JPanel {
 
     private static final String[] ranks = { "A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2" };
 
+    private int numDecks = 2;
     private int score;
 
     private final JLabel scoreLabel;
@@ -88,6 +89,10 @@ public class AssetPanel extends JPanel {
         assets = new ArrayList<>();
         setupLiteralPanel();
         showChanges();
+    }
+
+    public void setNumDecks(int numDecks) {
+        this.numDecks = numDecks;
     }
 
     private void setupLiteralPanel() {
@@ -245,7 +250,7 @@ public class AssetPanel extends JPanel {
     }
 
     private int updatePanel() {
-        return updatePanel(2);
+        return updatePanel(this.numDecks);
     }
 
     private int updatePanel(final int numDecks) {
@@ -268,17 +273,17 @@ public class AssetPanel extends JPanel {
                 heartScore += card.value();
                 heartHist.compute(card.alias().substring(0, 1), (k, v) -> v == null ? 1 : v + 1);
             } else if (card.isPig()) {
-                if (card.bid)
+                if (card.exposed)
                     numPigx += 1;
                 else
                     numPig += 1;
             } else if (card.isSheep()) {
-                if (card.bid)
+                if (card.exposed)
                     numSheepx += 1;
                 else
                     numSheep += 1;
             } else if (card.isTransformer()) {
-                if (card.bid)
+                if (card.exposed)
                     numTransx += 1;
                 else
                     numTrans += 1;

@@ -217,7 +217,7 @@ public class Player implements Runnable {
     }
 
     public int getScore() {
-        return assets.getScore(Table.numberOfDecks);
+        return assets.getScore(table.numDecks());
     }
 
     private void resetFrame() {
@@ -241,8 +241,8 @@ public class Player implements Runnable {
         sendToClient("ISREADY", String.valueOf(seatIndex));
     }
 
-    public void sendDeal(final int numCards) {
-        sendToClient("DEAL", String.valueOf(numCards));
+    public void sendDeal(final int numCards, final int numDecks) {
+        sendToClient("DEAL", String.valueOf(numCards), String.valueOf(numDecks));
     }
 
     public void sendTradeStart(final int tradeGap) {

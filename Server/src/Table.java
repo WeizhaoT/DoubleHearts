@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Weizhao Tang
  */
 public class Table implements Runnable {
-    public static final int numberOfDecks = 2; // number of decks in shoe
     public static final int tradeSize = 3;
     public static final int tradeOrder[] = new int[] { 1, 2, 3, 0 };
 
@@ -41,18 +40,24 @@ public class Table implements Runnable {
 
     private int frameNum = 0;
     private int tradeGap;
+    private int numberOfDecks;
     private boolean waitingForReady = false;
 
     /**
      * Constructor for Table object.
      */
 
-    public Table() {
+    public Table(int numDecks) {
+        numberOfDecks = numDecks;
         seats = new Player[4];
         names = new String[4];
         avtIndices = new int[] { -1, -1, -1, -1 };
         for (int i = 0; i < 4; i++)
             isReady[i] = new AtomicBoolean(false);
+    }
+
+    public int numDecks() {
+        return numberOfDecks;
     }
 
     public void setTabThread(final Thread tabThread) {
@@ -144,7 +149,7 @@ public class Table implements Runnable {
         roundReadyLatch.await();
         waitingForReady = false;
 
-        broadcastDeal(numCards / 4);
+        broadcastDeal(numCards / 4, numberOfDecks);
         final int[] twoClubHolders = dealAllCards(shoe, (new Random()).nextInt(4));
         allCardsDealtLatch.await();
 
@@ -340,10 +345,10 @@ public class Table implements Runnable {
         }
     }
 
-    public void broadcastDeal(final int numCards) {
+    public void broadcastDeal(final int numCards, final int numDecks) {
         synchronized (seats) {
             for (final Player player : seats)
-                player.sendDeal(numCards);
+                player.sendDeal(numCards, numDecks);
         }
     }
 
