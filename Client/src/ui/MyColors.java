@@ -16,7 +16,9 @@ public class MyColors {
     public static final Color darkGray = new Color(110, 110, 110);
     public static final Color gray = new Color(210, 210, 210);
 
-    public static final Color pink = new Color(200, 40, 230);
+    public static final Color doubled = new Color(200, 255, 150);
+    public static final Color quadrupled = new Color(255, 255, 0);
+
     public static final Color heartColor = new Color(224, 10, 40);
     public static final Color spadeColor = new Color(0, 50, 160);
     public static final Color diamondColor = new Color(200, 100, 30);
@@ -33,8 +35,7 @@ public class MyColors {
         if (text.length() == 0)
             return "";
 
-        return "<font face=\"Courier new\" color=\"rgb(" + color.getRed() + ", " + color.getGreen() + ", "
-                + color.getBlue() + ")\">" + text + "</font>";
+        return "<font color=\"rgb(" + color.getRed() + ", " + color.getGreen() + ", " + color.getBlue() + ")\">" + text
+                + "</font>";
     }
-
 }

@@ -5,6 +5,10 @@ import java.util.concurrent.ExecutionException;
 
 import javax.swing.SwingWorker;
 
+import element.ArrowLabel;
+import element.ImageLabel;
+import element.MaskedCard;
+import rule.Card;
 import ui.*;
 
 /**
@@ -33,9 +37,7 @@ public class ClientController {
     public static final String SEND_DELIM = "~~";
 
     /** flag indicating if in test mode */
-    public static boolean TEST_MODE = false;
-    /** number of cards in each hand */
-    public static int numCards = 26;
+    public static int TEST_MODE = 0;
 
     /** status flag indicating if self is waiting for a game to start */
     private boolean waitingForReady = false;
@@ -87,7 +89,7 @@ public class ClientController {
      * @param items message items to pack
      */
     public void sendToServer(final String... items) {
-        if (ClientController.TEST_MODE)
+        if (ClientController.TEST_MODE >= 1)
             System.err.println("To Server: " + String.join(", ", items));
 
         model.sendToServer(items);
@@ -111,6 +113,7 @@ public class ClientController {
 
         switch (items[1]) {
             case "WELCOME":
+                Card.setParams(Integer.parseInt(items[2]), Double.parseDouble(items[3]), Double.parseDouble(items[4]));
                 view.showWelcomePanel(); // Open window upon receipt
                 break;
             case "TAKESEAT":
@@ -142,7 +145,6 @@ public class ClientController {
             case "ADD": // Deal one card
                 if (view.addCard(items[2])) {
                     sendToServer("ALLDEALT");
-                    // view.setFirstRound(true);
                 }
                 break;
             case "TRADESTART": // Start trading
@@ -161,7 +163,7 @@ public class ClientController {
                 break;
             case "SHOWN":
                 absLoc = Integer.parseInt(items[2]);
-                view.displayShownCards(absLoc, getSubStrArray(items, 3));
+                view.displayExposedCards(absLoc, getSubStrArray(items, 3));
                 break;
             case "OPENING":
                 view.openFrame(Integer.parseInt(items[3]), Integer.parseInt(items[2]));
@@ -248,9 +250,8 @@ public class ClientController {
                     break;
                 case "-t":
                     try {
-                        TEST_MODE = true;
-                        numCards = Integer.parseInt(argument);
-                        if (numCards <= 0 || numCards > 26) {
+                        TEST_MODE = Integer.parseInt(argument);
+                        if (TEST_MODE < 0 || TEST_MODE > 2) {
                             throw new NumberFormatException();
                         }
                     } catch (final NumberFormatException e) {
@@ -275,7 +276,16 @@ public class ClientController {
             }
         }
 
+        System.err.print("Loading resources... ");
+        ArrowLabel.loadAllArrows();
+        ImageLabel.loadAllAvatars();
+        ImageLabel.loadMiscIcons();
+        MaskedCard.loadCardImages();
+        MaskedCard.loadLevelIcons();
+
         MyFont.registerFont();
+        ClientView.loadAllSoundEffects();
+        System.err.println("Done");
 
         final ClientController controller = new ClientController(serverAddress, serverPort);
         controller.start();

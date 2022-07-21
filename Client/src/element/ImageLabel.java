@@ -3,9 +3,12 @@ package element;
 import ui.*;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.awt.*;
 import javax.imageio.ImageIO;
 import javax.swing.*;
+
+import layout.WelcomeLayout;
 
 /**
  * The {@code ImageLabel} class loads full-sized images and enables flexible
@@ -13,6 +16,10 @@ import javax.swing.*;
  */
 public class ImageLabel extends JLabel {
     static final long serialVersionUID = 1L;
+
+    private static final HashMap<Integer, ImageIcon> avatarIcons = new HashMap<>();
+    private static ImageIcon tableIcon;
+    private static ImageIcon indicatorIcon;
 
     /** flag indicating if the image is cleared */
     private boolean cleared = true;
@@ -38,18 +45,12 @@ public class ImageLabel extends JLabel {
      * 
      * @param filename Image name
      */
-    public ImageLabel(final String filename) {
+    public ImageLabel(final ImageIcon icon) {
         this();
-        try {
-            setIcon(icon = new ImageIcon(
-                    ImageIO.read(Thread.currentThread().getContextClassLoader().getResourceAsStream(filename))));
-            setOpaque(false);
-            cleared = false;
-            setName(filename);
-            setSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
-        } catch (final IOException e) {
-            e.printStackTrace();
-        }
+        setIcon(this.icon = icon);
+        setOpaque(false);
+        cleared = false;
+        setSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
     }
 
     /**
@@ -59,10 +60,14 @@ public class ImageLabel extends JLabel {
      * @param filename   Image name
      * @param imageScale Wanted scale of image (both width and height)
      */
-    public ImageLabel(final String filename, final int imageScale) {
-        this(filename);
+    public ImageLabel(final ImageIcon icon, final int imageScale) {
+        this(icon);
         rescale(imageScale);
         setPreferredSize(new Dimension(imageScale, imageScale));
+    }
+
+    public ImageLabel(final int avatarIndex, final int imageScale) {
+        this(avatarIcons.get(avatarIndex), imageScale);
     }
 
     /**
@@ -143,6 +148,37 @@ public class ImageLabel extends JLabel {
         setVisible(true);
     }
 
+    public static void loadAllAvatars() {
+        ImageIcon avatarIcon;
+        for (int i = 0; i < WelcomeLayout.numAvt; i++) {
+            try {
+                avatarIcon = new ImageIcon(ImageIO.read(Thread.currentThread().getContextClassLoader()
+                        .getResourceAsStream(String.format("Avatars/avatar%02d.png", i))));
+                avatarIcons.put(i, avatarIcon);
+            } catch (final IOException e) {
+                System.err.println("Error: failed to load avatar No." + i);
+                System.exit(1);
+            }
+        }
+    }
+
+    public static void loadMiscIcons() {
+        try {
+            tableIcon = new ImageIcon(
+                    ImageIO.read(Thread.currentThread().getContextClassLoader().getResourceAsStream("card_table.png")));
+        } catch (final IOException e) {
+            System.err.println("Error: failed to load card table");
+            System.exit(1);
+        }
+        try {
+            indicatorIcon = new ImageIcon(ImageIO
+                    .read(Thread.currentThread().getContextClassLoader().getResourceAsStream("Avatars/indicator.png")));
+        } catch (final IOException e) {
+            System.err.println("Error: failed to load avatar indicator");
+            System.exit(1);
+        }
+    }
+
     /**
      * Create an avatar and set its name.
      * 
@@ -151,7 +187,7 @@ public class ImageLabel extends JLabel {
      * @return An {@link ImageLabel} instance of the avatar
      */
     public static ImageLabel createAvatar(final int index, final int avatarScale) {
-        final ImageLabel label = new ImageLabel(String.format("Avatars/avatar%02d.png", index), avatarScale);
+        final ImageLabel label = new ImageLabel(index, avatarScale);
         if (label != null)
             label.setName(String.valueOf(index));
 
@@ -164,9 +200,9 @@ public class ImageLabel extends JLabel {
      * @return An {@link ImageLabel} instance of the avatar indicator
      */
     public static ImageLabel getIndicator() {
-        final ImageLabel indicator = new ImageLabel("Avatars/indicator.png");
+        final ImageLabel indicator = new ImageLabel(indicatorIcon);
         if (indicator != null)
-            indicator.setName("on10");
+            indicator.setName("on00");
 
         return indicator;
     }
@@ -177,6 +213,6 @@ public class ImageLabel extends JLabel {
      * @return An {@link ImageLabel} instance of the card table
      */
     public static ImageLabel getTable() {
-        return new ImageLabel("card_table.png");
+        return new ImageLabel(tableIcon);
     }
 }

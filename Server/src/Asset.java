@@ -1,5 +1,5 @@
 
-import java.util.LinkedList;
+import java.util.*;
 
 /**
  * {@code Asset} class maintains all asset cards of a player.
@@ -12,61 +12,48 @@ public class Asset {
 
     public void addAsset(final Card newCard) {
         cards.add(newCard);
-        cards.sort(new Card.CardComparator());
-    }
-
-    public int getScore(final int numDecks) {
-        int heartScore = 0;
-        int pigScore = 0;
-
-        int numTrans = 0, numTransx = 0;
-        int numSheep = 0, numSheepx = 0;
-        int numPig = 0, numPigx = 0;
-        int numHearts = 0;
-
-        final int propertySize = cards.size();
-
-        for (final Card card : cards) {
-            if (card.isHeart()) {
-                numHearts += 1;
-                heartScore += card.value();
-            } else if (card.isPig()) {
-                if (card.bid)
-                    numPigx += 1;
-                else
-                    numPig += 1;
-            } else if (card.isSheep()) {
-                if (card.bid)
-                    numSheepx += 1;
-                else
-                    numSheep += 1;
-            } else if (card.isTransformer()) {
-                if (card.bid)
-                    numTransx += 1;
-                else
-                    numTrans += 1;
-            }
-        }
-
-        if (propertySize == 0)
-            return 0;
-
-        if (propertySize == numTrans + numTransx)
-            return numTrans * 50 + numTransx * 100;
-
-        pigScore = -numPig * 100 - numPigx * 200;
-
-        if (numHearts == 13 * numDecks) {
-            heartScore = -heartScore;
-            heartScore += propertySize == 16 * numDecks ? -pigScore : pigScore;
-        }
-
-        heartScore += pigScore + numSheep * 100 + numSheepx * 200;
-        heartScore <<= (numTrans + numTransx * 2);
-        return heartScore;
     }
 
     public void clear() {
         cards.clear();
+    }
+
+    public int getScore(final int numDecks) {
+        int total = 0;
+        int heartScore = 0, pigScore = 0, sheepScore = 0, transScore = 0;
+
+        int numHearts = 0;
+        int numTrans = 0;
+
+        final int assetSize = cards.size();
+        final ArrayList<Card> transformers = new ArrayList<>();
+
+        for (final Card card : cards) {
+            if (card.isHeart()) {
+                numHearts++;
+                heartScore += card.value();
+            } else if (card.isPig()) {
+                pigScore += card.value();
+            } else if (card.isSheep()) {
+                sheepScore += card.value();
+            } else if (card.isTransformer()) {
+                transScore += card.value();
+                transformers.add(card);
+                numTrans++;
+            }
+        }
+
+        if (assetSize == 0)
+            return 0;
+        if (assetSize == numTrans)
+            return transScore;
+
+        if (numHearts == 13 * numDecks) {
+            heartScore = -heartScore;
+            pigScore = assetSize == 16 * numDecks ? -pigScore : pigScore;
+        }
+
+        total = (int) Math.round((heartScore + pigScore + sheepScore) * Card.getMult(transformers));
+        return total;
     }
 }

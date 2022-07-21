@@ -9,6 +9,8 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TableSectionPanel extends JPanel {
     static final long serialVersionUID = 1L;
@@ -123,7 +125,6 @@ public class TableSectionPanel extends JPanel {
             }
         }
         historyShown = true;
-        System.out.println("history shown");
         if (historyTimer != null)
             historyTimer.stop();
 
@@ -151,7 +152,6 @@ public class TableSectionPanel extends JPanel {
             }
         }
         historyShown = false;
-        System.out.println("history hidden");
         showChanges();
     }
 
@@ -176,7 +176,6 @@ public class TableSectionPanel extends JPanel {
             for (int i = 0; i < aliases.length; i++) {
                 final Card card = new Card(aliases[i]);
                 final MaskedCard cardObj = new MaskedCard(aliases[i]);
-                cardObj.setName("card_" + aliases[i]);
                 cardObj.setVisible(!historyShown);
                 cardMap.put(card, cardObj);
                 add(cardObj);
@@ -193,6 +192,12 @@ public class TableSectionPanel extends JPanel {
             }
         }
         textCovered = true;
+        showChanges();
+    }
+
+    public synchronized void applyExposure(String[] exposed) {
+        MaskedCard.upgradeEffects(exposed, null, Stream.of(getComponents())
+                .filter(c -> c.getClass() == MaskedCard.class).map(c -> (MaskedCard) c).collect(Collectors.toSet()));
         showChanges();
     }
 

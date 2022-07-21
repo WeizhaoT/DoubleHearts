@@ -8,8 +8,7 @@ import element.*;
 import java.io.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.swing.*;
@@ -79,13 +78,14 @@ public class ClientView extends JFrame implements ActionListener {
     private final AssetPanel[] assetPanels = new AssetPanel[4];
     /** Hand of cards and interactive buttons */
     private HandPanel handPanel;
+    private RulePanel rulePanel;
     /** Speaker label to turn on/off the sound effects */
     private Speaker speaker;
     /** Center panel including card showing panels, error message labels, etc. */
     private CenterPanel centerPanel;
 
     /** Map of all loaded sound effect clips */
-    private final HashMap<String, Clip> clipMap = new HashMap<>();
+    private static final HashMap<String, Clip> clipMap = new HashMap<>();
 
     private final ReentrantLock actionLock = new ReentrantLock();
 
@@ -101,7 +101,6 @@ public class ClientView extends JFrame implements ActionListener {
 
         setupFrame();
         createPanels();
-        setupSound();
     }
 
     /**
@@ -140,7 +139,7 @@ public class ClientView extends JFrame implements ActionListener {
 
         setLayout(new FullWindowLayout(welcomeLayout, pokerGameLayout));
         createWelcomePanel();
-        createTurnPanel();
+        createPokerGamePanel();
         pack();
         setResizable(true);
         setExtendedState(getExtendedState() | JFrame.MAXIMIZED_BOTH); // Maximize window at start
@@ -149,9 +148,9 @@ public class ClientView extends JFrame implements ActionListener {
     /**
      * Load all sound effects and register them in map
      */
-    private void setupSound() {
+    public static void loadAllSoundEffects() {
         for (final String filename : new String[] { "drop", "play", "alarm2", "deal" }) {
-            try (InputStream inputStream = getClass().getClassLoader()
+            try (InputStream inputStream = Thread.currentThread().getContextClassLoader()
                     .getResourceAsStream("Sounds/" + filename + ".wav")) {
                 final BufferedInputStream bufferedStream = new BufferedInputStream(inputStream);
                 final AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(bufferedStream);
@@ -159,7 +158,8 @@ public class ClientView extends JFrame implements ActionListener {
                 clip.open(audioInputStream);
                 clipMap.put(filename, clip);
             } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
-                System.err.println("Warning: failed to load " + filename + ".wav: " + e.getClass());
+                System.err.println("Error: failed to load " + filename + ".wav: " + e.getClass());
+                System.exit(1);
             }
         }
     }
@@ -261,7 +261,7 @@ public class ClientView extends JFrame implements ActionListener {
     /**
      * Creates the turn panel.
      */
-    private void createTurnPanel() {
+    private void createPokerGamePanel() {
         pokerGamePanel = new JPanel(pokerGameLayout);
         pokerGamePanel.setBackground(MyColors.tableGreen);
         pokerGamePanel.setVisible(false);
@@ -276,8 +276,9 @@ public class ClientView extends JFrame implements ActionListener {
         }
 
         // Speaker switch, rule cheatsheet and hand of cards
+        pokerGamePanel.add(new LegendPanel(), PokerGameLayout.LEGEND);
+        pokerGamePanel.add(rulePanel = new RulePanel(), PokerGameLayout.RULE);
         pokerGamePanel.add(speaker = new Speaker(), PokerGameLayout.SPEAKER);
-        pokerGamePanel.add(new RulePanel(), PokerGameLayout.RULE);
         pokerGamePanel.add(handPanel = new HandPanel(controller, this), PokerGameLayout.HAND);
 
         // Setup mouse listener for speaker icon
@@ -361,6 +362,7 @@ public class ClientView extends JFrame implements ActionListener {
     private void showPokerGamePanel() {
         welcomePanel.setVisible(false);
         getContentPane().setBackground(MyColors.tableGreen);
+        rulePanel.reset();
         pokerGamePanel.setVisible(true);
         setTitle(MyText.getTitle() + " - " + myName);
 
@@ -575,7 +577,7 @@ public class ClientView extends JFrame implements ActionListener {
         handPanel.setMaskMode("EXPOSABLE");
         handPanel.enableShowButton();
         centerPanel.setCornerTimer(timeLimit);
-        centerPanel.setErrMsg(MyText.HINT_SHOWING);
+        centerPanel.setErrMsg(MyText.HINT_SHOWING, handPanel.checkExposables());
         showChanges();
     }
 
@@ -585,7 +587,7 @@ public class ClientView extends JFrame implements ActionListener {
      * @param absLoc  Absolute position of the player
      * @param aliases Aliases of cards shown, empty when showing is passed
      */
-    public void displayShownCards(final int absLoc, final String[] aliases) {
+    public void displayExposedCards(final int absLoc, final String[] aliases) {
         final int playerIndex = getRelativeLoc(absLoc);
 
         if (aliases.length > 0) {
@@ -594,13 +596,17 @@ public class ClientView extends JFrame implements ActionListener {
         } else {
             centerPanel.showPass(playerIndex);
         }
-        assetPanels[playerIndex].setShown(aliases);
+        assetPanels[playerIndex].setExposed(aliases);
+        rulePanel.updateEffects(aliases);
+        handPanel.applyExposure(aliases);
+        centerPanel.allApplyExposure(aliases);
         if (playerIndex == 0) {
+            handPanel.putAllCards();
             handPanel.disableMidButton();
             handPanel.enableMouseControl(true);
-            handPanel.confirmExposedCards();
             centerPanel.setErrMsg(MyText.NORMAL);
         }
+
         if (++numShown == 4) {
             centerPanel.endCornerTiming(); // Reset the whole table when phase ends
         }
@@ -673,6 +679,7 @@ public class ClientView extends JFrame implements ActionListener {
             allReady[i] = false;
             assetPanels[i].reset();
         }
+        rulePanel.reset();
         handPanel.reset();
         centerPanel.reset();
         showChanges();
@@ -692,6 +699,9 @@ public class ClientView extends JFrame implements ActionListener {
         } else {
             final int loc = getRelativeLoc(absLoc);
             playerPanels[loc].clear();
+            for (PlayerPanel playerPanel : playerPanels)
+                playerPanel.setTotalScore(0);
+
             centerPanel.clearSection(loc);
             if (!waitingForReady) {
                 resetForNewFrame();
@@ -768,8 +778,8 @@ public class ClientView extends JFrame implements ActionListener {
      * 
      * @param errCode Error code of the message
      */
-    public void setPlayErrMsg(final int errCode) {
-        centerPanel.setErrMsg(errCode);
+    public void setPlayErrMsg(final int errCode, final int... flags) {
+        centerPanel.setErrMsg(errCode, flags);
     }
 
     /**

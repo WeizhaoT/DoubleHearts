@@ -19,7 +19,7 @@ public class PlayerPanel extends JPanel {
         setOpaque(false);
         setLayout(new PlayerPanelLayout());
 
-        if (ClientController.TEST_MODE)
+        if (ClientController.TEST_MODE >= 2)
             setBorder(BorderFactory.createLineBorder(MyColors.yellow));
 
         scoreLabel = new JLabel("<html>" + MyText.getTotalScoreText() + "<font face=\"Courier new\">0</font></html>",

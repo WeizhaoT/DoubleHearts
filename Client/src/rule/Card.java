@@ -1,9 +1,7 @@
 package rule;
 
-import java.io.IOException;
 import java.util.*;
-import javax.imageio.ImageIO;
-import javax.swing.*;
+import java.util.stream.Collectors;
 
 /**
  * Card objects represent a standard playing card with a rank and a suit.
@@ -11,13 +9,22 @@ import javax.swing.*;
  * @author Weizhao Tang
  */
 public class Card {
-    public static final int NONE = 0;
+    private static int baseScore = 10;
+
+    public static final String OPENER = Rank.TWO.alias() + Suit.CLUBS.alias();
+    public static final String TRANS = Rank.TEN.alias() + Suit.CLUBS.alias();
+    public static final String SHEEP = Rank.JACK.alias() + Suit.DIAMONDS.alias();
+    public static final String PIG = Rank.QUEEN.alias() + Suit.SPADES.alias();
+    public static final String ACEH = Rank.ACE.alias() + Suit.HEARTS.alias();
+
+    public static double MULT_EXP = 0.1;
+    public static double MULT_GET = 0.1;
 
     /** rank of the card */
     private final Rank rank;
     /** suit of the card */
     private final Suit suit;
-    public boolean exposed = false;
+    public int exposed = 0;
 
     /**
      * The {@code CardComparator} class defines comparison between each pair of
@@ -149,16 +156,15 @@ public class Card {
      * @param alias Full alias of new card
      */
     public Card(final String alias) {
-        if (alias.length() != 2 && alias.length() != 3 || (alias.length() == 3 && alias.charAt(2) != 'x'))
+        if (alias.length() != 2 && alias.length() != 3 || (alias.length() == 3 && !"zx".contains(alias.substring(2))))
             throw new NumberFormatException("Illegal card alias \"" + alias + "\"");
 
-        final String sRank = alias.substring(0, 1);
-        final String sSuit = alias.substring(1, 2);
-        rank = Rank.fromString(sRank);
-        suit = Suit.fromString(sSuit);
+        rank = Rank.fromString(alias.substring(0, 1));
+        suit = Suit.fromString(alias.substring(1, 2));
 
-        if (alias.length() == 3)
-            exposeCard();
+        if (alias.length() == 3) {
+            upgrade(alias.charAt(2) == 'x' ? 1 : 2);
+        }
     }
 
     /**
@@ -186,8 +192,20 @@ public class Card {
     /**
      * Set {@code exposed} flag to {@code true} when the card is exposed.
      */
-    public void exposeCard() {
-        exposed = true;
+    public synchronized void upgrade(final int numLevels) {
+        if ((exposed += numLevels) > 2)
+            throw new RuntimeException("Upgrade to " + exposed + " over maximum 2");
+    }
+
+    public synchronized boolean fullyUpgraded() {
+        return exposed >= 2;
+    }
+
+    /**
+     * Set {@code exposed} flag to {@code true} when the card is exposed.
+     */
+    public synchronized void resetGrade() {
+        exposed = 0;
     }
 
     /**
@@ -196,19 +214,27 @@ public class Card {
      * @return the value of the card
      */
     public int value() {
-        if (rank == Rank.JACK && suit == Suit.DIAMONDS)
-            return 100;
-        if (rank == Rank.QUEEN && suit == Suit.SPADES)
-            return -100;
-        if (suit == Suit.HEARTS && rank.value >= Rank.FIVE.value) {
-            int baseValue = -10;
+        if (isTransformer())
+            return (5 * baseScore) << exposed;
+        if (isSheep())
+            return (10 * baseScore) << exposed;
+        if (isPig())
+            return (-10 * baseScore) << exposed;
+        if (isNegativeHeart()) {
+            int baseValue = -baseScore;
             if (rank.value >= Rank.JACK.value)
-                baseValue += (-10) * (rank.value - Rank.TEN.value);
+                baseValue += (-baseScore) * (rank.value - Rank.TEN.value);
 
-            return baseValue;
+            return baseValue << exposed;
         }
-
         return 0;
+    }
+
+    public double multiplier() {
+        if (isTransformer()) {
+            return 1.0 + exposed * MULT_EXP;
+        } else
+            throw new RuntimeException("Calling multiplier on non-transformer \"" + fullAlias() + "\"");
     }
 
     /**
@@ -225,7 +251,7 @@ public class Card {
      * 
      * @return {@code true} if card is forbidden; {@code false} otherwise
      */
-    public boolean forbiddenInFirstRound() {
+    public boolean scoringInRound1() {
         return isSheep() || isPig() || isNegativeHeart();
     }
 
@@ -236,7 +262,7 @@ public class Card {
      *         otherwise
      */
     public boolean isExposable() {
-        return isTransformer() || isSheep() || isPig();
+        return weakEquals(Card.ACEH) || isSheep() || isPig() || isTransformer();
     }
 
     /**
@@ -327,7 +353,11 @@ public class Card {
      * @return Full alias of card
      */
     public String fullAlias() {
-        return rank.alias() + suit.alias() + (exposed ? "x" : "");
+        return alias() + (exposed == 0 ? "" : exposed == 1 ? "x" : "z");
+    }
+
+    public String exposerAlias() {
+        return isScored() ? (isHeart() ? Card.ACEH : alias()) : "--";
     }
 
     /**
@@ -341,9 +371,9 @@ public class Card {
      * @return A set of feasible cards recommended to player
      */
     public static HashSet<Card> getHintFeasible(final ArrayList<Card> cards, final ArrayList<Card> leadSet,
-            HashSet<Card> selected, final boolean firstRound) {
+            final HashSet<Card> selected, final boolean firstRound) {
 
-        HashSet<Card> emptyFeasible = getFeasible(cards, leadSet, null, firstRound);
+        final HashSet<Card> emptyFeasible = getFeasible(cards, leadSet, null, firstRound);
         if (leadSet == null || emptyFeasible.size() >= leadSet.size())
             return emptyFeasible;
 
@@ -368,35 +398,24 @@ public class Card {
      * @return A set of feasible cards that can be selected next
      */
     public static HashSet<Card> getFeasible(final ArrayList<Card> cards, final ArrayList<Card> leadSet,
-            HashSet<Card> selected, final boolean firstRound) {
-        if (selected == null)
-            selected = new HashSet<>();
+            final HashSet<Card> selected_, final boolean firstRound) {
+        final HashSet<Card> selected = selected_ == null ? new HashSet<>() : selected_;
 
         final int numSelected = selected.size();
         if (numSelected >= 2)
             return new HashSet<>(); // If selected at least 2 cards, no card is feasible
 
         if (leadSet == null || leadSet.isEmpty()) { // Player is leader itself
-            if (firstRound) {
-                final HashSet<Card> twoOfClubs = new HashSet<>();
-                for (final Card card : cards) {
-                    if (card.weakEquals("2C") && !selected.contains(card))
-                        twoOfClubs.add(card);
-                }
-                return twoOfClubs; // Only 2C is allowed to lead the first round
+            if (firstRound) { // Only 2C is allowed to lead the first round
+                return new HashSet<>(cards.stream().filter(c -> c.weakEquals(Card.OPENER) && !selected.contains(c))
+                        .collect(Collectors.toSet()));
             } else if (numSelected == 0) {
                 return new HashSet<>(cards); // Any card is allowed to lead in non-first rounds
             } else {
-                String selectedAlias = selected.isEmpty() ? null : selected.iterator().next().alias();
-                for (final Card card : cards) {
-                    if (selected.contains(card)) {
-                        continue;
-                    } else if (card.weakEquals(selectedAlias)) {
-                        return new HashSet<>(Arrays.asList(card)); // When a card is selected, the only feasible card is
-                                                                   // its twin
-                    }
-                }
-                return new HashSet<>(); // No twin exists; nothing is feasible
+                final String selectedAlias = selected.isEmpty() ? null : selected.iterator().next().alias();
+                // When a card is selected, the only feasible card is its twin
+                return new HashSet<>(cards.stream().filter(c -> c.weakEquals(selectedAlias) && !selected.contains(c))
+                        .collect(Collectors.toSet()));
             }
         } else { // Player is following someone else's turn
             final Suit leadSuit = leadSet.get(0).suit;
@@ -405,24 +424,18 @@ public class Card {
                     return new HashSet<>(); // Selected enough cards, so no card is feasible
 
                 // Collect feasible cards separately from same suit and other suits
-                final HashSet<Card> sameSuitFeasible = new HashSet<>();
-                final HashSet<Card> otherSuitFeasible = new HashSet<>();
-                for (final Card card : cards) {
-                    if (card.suit == leadSuit) {
-                        sameSuitFeasible.add(card);
-                    } else if (!(firstRound && card.forbiddenInFirstRound())) {
-                        otherSuitFeasible.add(card);
-                    }
-                }
+                final HashSet<Card> sameSuitFeasible = new HashSet<>(
+                        cards.stream().filter(c -> c.suit == leadSuit).collect(Collectors.toSet()));
+                final HashSet<Card> allSuitFeasible = new HashSet<>(
+                        cards.stream().filter(c -> !firstRound || !c.scoringInRound1()).collect(Collectors.toSet()));
 
                 // First check samesuit, then check othersuit; if nothing is feasible, then
                 // everything becomes feasible
-                return sameSuitFeasible.isEmpty()
-                        ? (otherSuitFeasible.isEmpty() ? new HashSet<>(cards) : otherSuitFeasible)
+                return sameSuitFeasible.isEmpty() ? (allSuitFeasible.isEmpty() ? new HashSet<>(cards) : allSuitFeasible)
                         : sameSuitFeasible;
             } else { // Double leading card
                 Card existing = null;
-                String selectedAlias = selected.isEmpty() ? null : selected.iterator().next().alias();
+                final String selectedAlias = selected.isEmpty() ? null : selected.iterator().next().alias();
 
                 // Collect feasible cards in other suits, and try to find pairs in the leading
                 // suit
@@ -432,7 +445,7 @@ public class Card {
 
                 for (final Card card : cards) {
                     if (selected.contains(card) || card.suit != leadSuit) {
-                        if (!selected.contains(card) && !(firstRound && card.forbiddenInFirstRound())) {
+                        if (!selected.contains(card) && !(firstRound && card.scoringInRound1())) {
                             otherSuitFeasible.add(card);
                         }
                         continue;
@@ -458,26 +471,37 @@ public class Card {
         }
     }
 
-    /**
-     * Returns a JLabel containing an image of the card with the given name.
-     *
-     * @param cardName Name of card to add to JLabel
-     * @return the JLabel containing an image of the card
-     */
-    public static JLabel createCard(final String cardName) {
-        JLabel cardLabel = null; // label containing image of card
-        try {
-            String alias = new String(cardName);
-            if (cardName.length() == 3)
-                alias = alias.substring(0, 2);
+    public static double getMult(final Collection<Card> trans) {
+        if (trans == null || trans.isEmpty())
+            return 1.0;
 
-            cardLabel = new JLabel(new ImageIcon(ImageIO.read(Thread.currentThread().getContextClassLoader()
-                    .getResourceAsStream("CardImages/" + alias + ".png"))));
-            cardLabel.setName(cardName);
-        } catch (final IOException e) {
-            e.printStackTrace();
-        }
-        return cardLabel;
+        final double maxMult = trans.stream().max(Comparator.comparing(c -> c.multiplier())).get().multiplier();
+        return maxMult + trans.size() * MULT_GET;
+    }
+
+    public static double getMult(Card... trans) {
+        return getMult(Arrays.asList(trans));
+    }
+
+    public static String getNumerics(int len, double d) {
+        if (Math.abs(d - Math.round(d)) < 0.05) {
+            return String.format(len > 0 ? "%" + len + "d" : "%d", Math.round(d));
+        } else
+            return String.format(len > 0 ? "%" + len + ".1f" : "%.1f", d);
+    }
+
+    public static String getMultStr(int len, Card... trans) {
+        return getNumerics(len, getMult(trans));
+    }
+
+    public static void setParams(final int score, final double mult_exp, final double mult_get) {
+        baseScore = score;
+        MULT_EXP = mult_exp;
+        MULT_GET = mult_get;
+    }
+
+    public static boolean isPair(final String alias1, final String alias2) {
+        return alias1.startsWith(alias2.substring(0, 2));
     }
 
     public static boolean isPair(final Collection<Card> collection) {
@@ -486,13 +510,6 @@ public class Card {
     }
 
     public static String concatCards(final String delim, final Collection<Card> collection) {
-        final ArrayList<String> aliasList = new ArrayList<>();
-
-        for (final Card card : collection) {
-            aliasList.add(card.fullAlias());
-        }
-
-        return String.join(delim, aliasList);
+        return collection.stream().map(card -> card.fullAlias()).collect(Collectors.joining(delim));
     }
-
 }

@@ -12,7 +12,6 @@ public class MyFont {
     public static final Font assetSymb = new Font("Courier New", Font.BOLD, (int) Size.asset);
     public static final Font rule = new Font("Courier New", Font.BOLD, (int) Size.rule);
     public static final Font errMsg = new Font(Font.MONOSPACED, Font.BOLD, (int) Size.errMsg);
-    public static final Font pass = new Font(Font.MONOSPACED, Font.BOLD, (int) Size.pass);
     public static final Font score = new Font(Font.MONOSPACED, Font.BOLD, (int) Size.score);
     public static final Font smallScore = new Font(Font.MONOSPACED, Font.BOLD, (int) Size.smallScore);
 

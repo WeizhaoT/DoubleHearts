@@ -1,6 +1,7 @@
 package element;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -13,6 +14,8 @@ import javax.swing.*;
  */
 public class ArrowLabel extends ImageLabel {
     static final long serialVersionUID = 1L;
+
+    private static final HashMap<String, ImageIcon> arrowIcons = new HashMap<>();
 
     /** gap between sender and recipient in counter-clockwise direction */
     private final int tradeGap;
@@ -29,9 +32,9 @@ public class ArrowLabel extends ImageLabel {
      * @param sender Relative location of sender
      */
     public ArrowLabel(final int gap, final int sender) {
-        super("Arrows/" + gap + sender + "a.png");
+        super(arrowIcons.get(String.format("%d%da", gap, sender)));
         setOpaque(false);
-        setName(String.valueOf(gap) + sender + "arrow");
+        setName(String.format("arrow%d%d", gap, sender));
 
         tradeGap = gap;
         senderIndex = sender;
@@ -47,15 +50,29 @@ public class ArrowLabel extends ImageLabel {
         if (inactive == this.undecided)
             return;
 
-        try {
-            final String side = inactive ? "a" : "b";
-            icon = new ImageIcon(ImageIO.read(Thread.currentThread().getContextClassLoader()
-                    .getResourceAsStream("Arrows/" + tradeGap + senderIndex + side + ".png")));
-            this.undecided = inactive;
-            setIcon(icon);
-            showChanges();
-        } catch (final IOException e) {
-            e.printStackTrace();
+        final String iconName = String.format("%d%d%s", tradeGap, senderIndex, inactive ? "a" : "b");
+        icon = arrowIcons.get(iconName);
+        this.undecided = inactive;
+        setIcon(icon);
+        showChanges();
+    }
+
+    public static void loadAllArrows() {
+        ImageIcon arrowIcon;
+        for (int i = 1; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                for (String side : new String[] { "a", "b" }) {
+                    String iconName = String.format("%d%d%s", i, j, side);
+                    try {
+                        arrowIcon = new ImageIcon(ImageIO.read(Thread.currentThread().getContextClassLoader()
+                                .getResourceAsStream("Arrows/" + iconName + ".png")));
+                        arrowIcons.put(iconName, arrowIcon);
+                    } catch (final IOException | IllegalArgumentException e) {
+                        System.err.println("Error: failed to load arrow " + iconName);
+                        System.exit(1);
+                    }
+                }
+            }
         }
     }
 }

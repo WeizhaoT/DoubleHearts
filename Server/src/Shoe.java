@@ -27,25 +27,30 @@ public class Shoe {
         }
 
         if (Server.TEST_MODE) {
+            int numAdded = 0;
+
             shuffle();
             numCards = 4 * Server.numCards;
-            final List<Card> chosen = shoe.subList(0, numCards);
-            shoe = new ArrayList<>(chosen);
 
-            boolean hasTwoClubs = false;
+            ArrayList<Card> newShoe = new ArrayList<>();
 
-            for (final Card card : shoe) {
-                if (card.weakEquals("2C")) {
-                    hasTwoClubs = true;
-                    break;
+            HashSet<String> filtered = new HashSet<>(
+                    Arrays.asList(Card.OPENER, Card.TRANS, Card.SHEEP, Card.PIG, "KH", Card.ACEH));
+
+            for (String alias : filtered) {
+                newShoe.add(new Card(alias));
+                newShoe.add(new Card(alias));
+                numAdded += 2;
+            }
+
+            Card newCard;
+            while (numAdded < numCards) {
+                if (!filtered.contains((newCard = shoe.remove(0)).alias())) {
+                    newShoe.add(newCard);
+                    numAdded++;
                 }
             }
-
-            if (!hasTwoClubs) {
-                shoe.remove(0);
-                shoe.add(0, new Card("2C"));
-                shuffle();
-            }
+            shoe = newShoe;
         }
     }
 

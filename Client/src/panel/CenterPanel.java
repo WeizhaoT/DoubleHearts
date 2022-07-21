@@ -11,11 +11,6 @@ import javax.swing.*;
 public class CenterPanel extends JPanel {
     static final long serialVersionUID = 1L;
 
-    private static final int errw = PokerTableLayout.helperWidth;
-    private static final int errh = PokerTableLayout.helperHeight;
-    private static final int passw = PokerTableLayout.passWidth;
-    private static final int passh = PokerTableLayout.passHeight;
-
     private final ClientView view;
     private int frame = 0;
 
@@ -23,12 +18,11 @@ public class CenterPanel extends JPanel {
     private final DigitalClock[] sectionClocks = new DigitalClock[4];
     private final DigitalClock cornerClock;
 
-    private final JLabel helperLabel;
-    private final BackgroundRect helperLabelBG;
-    // private final JPanel scoreboard;
+    private final LabelWithBG helperLabel;
+    private final LabelWithBG bigHelperLabel;
+    // private final BackgroundRect helperLabelBG;
     private final Scoreboard scoreboard;
-    private final JLabel passLabel;
-    private final BackgroundRect passLabelBG;
+    private final LabelWithBG passLabel;
 
     private final ArrowLabel[][] arrows = new ArrowLabel[4][4];
 
@@ -46,26 +40,20 @@ public class CenterPanel extends JPanel {
             add(sectionClocks[i], PokerTableLayout.ALLCLOCKS[i]);
         }
 
-        helperLabel = new JLabel("", SwingConstants.CENTER);
-        helperLabel.setOpaque(false);
-        helperLabel.setForeground(MyColors.tableGreen);
-        helperLabel.setFont(MyText.getErrMsgFont());
-        add(helperLabel, PokerTableLayout.HLABEL);
+        helperLabel = new LabelWithBG();
+        helperLabel.setLabelFont(MyText.getErrMsgFont());
+        add(helperLabel, PokerTableLayout.HELPER);
 
-        helperLabelBG = new BackgroundRect(errw, errh);
-        add(helperLabelBG, PokerTableLayout.HBG);
+        bigHelperLabel = new LabelWithBG();
+        bigHelperLabel.setLabelFont(MyText.getExposeFont());
+        add(bigHelperLabel, PokerTableLayout.BHELPER);
 
         scoreboard = new Scoreboard();
         add(scoreboard, PokerTableLayout.SBOARD);
 
-        passLabel = new JLabel("", SwingConstants.CENTER);
-        passLabel.setOpaque(false);
-        passLabel.setForeground(MyColors.tableGreen);
-        passLabel.setFont(MyText.getPassFont());
+        passLabel = new LabelWithBG();
+        passLabel.setLabelFont(MyText.getPassFont());
         add(passLabel, PokerTableLayout.PLABEL);
-
-        passLabelBG = new BackgroundRect(passw, passh);
-        add(passLabelBG, PokerTableLayout.PBG);
 
         cornerClock = new DigitalClock(-1, view, this, true);
         add(cornerClock, PokerTableLayout.CCLOCK);
@@ -77,7 +65,7 @@ public class CenterPanel extends JPanel {
             }
         }
 
-        if (ClientController.TEST_MODE) {
+        if (ClientController.TEST_MODE >= 2) {
             setBorder(BorderFactory.createLineBorder(Color.WHITE));
             for (final Component comp : getComponents()) {
                 ((JComponent) comp).setBorder(BorderFactory.createLineBorder(MyColors.randomColor()));
@@ -111,6 +99,12 @@ public class CenterPanel extends JPanel {
     public void allHideHistory() {
         for (final TableSectionPanel tableSectionPanel : sectionPanels) {
             tableSectionPanel.hideHistory();
+        }
+    }
+
+    public void allApplyExposure(String[] aliases) {
+        for (final TableSectionPanel tableSectionPanel : sectionPanels) {
+            tableSectionPanel.applyExposure(aliases);
         }
     }
 
@@ -167,39 +161,42 @@ public class CenterPanel extends JPanel {
         }
     }
 
-    public void setErrMsg(final int errCode) {
-        setErrMsg(MyText.getErrMsg(errCode), true);
+    public void setErrMsg(final int errCode, final int... flags) {
+        if (errCode == MyText.NORMAL) {
+            helperLabel.setVisible(false);
+            bigHelperLabel.setVisible(false);
+        } else if (errCode == MyText.HINT_SHOWING || errCode == MyText.ILLEGAL_SHOWING) {
+            setBigHelper(errCode, flags);
+            helperLabel.setVisible(false);
+        } else {
+            setHelper(MyText.getErrMsg(errCode), true);
+            bigHelperLabel.setVisible(false);
+        }
     }
 
     public void setConnErrMsg(final String name) {
-        setErrMsg(MyText.getConnErrMsg(name), true);
+        setHelper(MyText.getConnErrMsg(name), true);
     }
 
-    private void setErrMsg(final String errmsg, final boolean html) {
-        if (errmsg == null || errmsg.isEmpty()) {
-            helperLabel.setVisible(false);
-            helperLabelBG.setVisible(false);
-            showChanges();
-            return;
-        }
-
+    private void setHelper(final String errmsg, final boolean html) {
         if (html)
-            helperLabel.setText("<html><center>" + errmsg + "</center></html>");
+            helperLabel.setLabelText("<html><center>" + errmsg + "</center></html>");
         else
-            helperLabel.setText(errmsg);
+            helperLabel.setLabelText(errmsg);
+
         helperLabel.setVisible(true);
-        helperLabelBG.setVisible(true);
         showChanges();
+    }
+
+    private void setBigHelper(final int errCode, final int... flags) {
+        bigHelperLabel.setLabelText("<html><center>" + MyText.getErrMsg(errCode, flags) + "</center></html>");
     }
 
     public void enablePassingHints(final boolean enable) {
         if (enable) {
-            passLabel.setText("<html><center>" + MyText.getPassingHint() + "</center></html>");
-            passLabel.setVisible(true);
-            passLabelBG.setVisible(true);
+            passLabel.setLabelText("<html><center>" + MyText.getPassingHint() + "</center></html>");
         } else {
             passLabel.setVisible(false);
-            passLabelBG.setVisible(false);
         }
         showChanges();
     }
@@ -210,10 +207,8 @@ public class CenterPanel extends JPanel {
 
     public void reset() {
         helperLabel.setVisible(false);
-        helperLabelBG.setVisible(false);
         scoreboard.setVisible(false);
         passLabel.setVisible(false);
-        passLabelBG.setVisible(false);
 
         for (int j = 1; j < 4; j++) {
             for (int i = 0; i < 4; i++) {

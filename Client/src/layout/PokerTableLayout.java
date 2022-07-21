@@ -17,11 +17,10 @@ public class PokerTableLayout implements LayoutManager2 {
     public static final String ECLOCK = "E" + CLOCK;
     public static final String[] ALLCLOCKS = new String[] { SCLOCK, ECLOCK, NCLOCK, WCLOCK };
 
-    public static final String HLABEL = "Hlabel";
-    public static final String HBG = "Hbg";
+    public static final String HELPER = "Hlabel";
+    public static final String BHELPER = "Expose";
     public static final String SBOARD = "Scoreboard";
     public static final String PLABEL = "Plabel";
-    public static final String PBG = "Pbg";
 
     public static final String ARROW = "Arrow";
 
@@ -33,6 +32,8 @@ public class PokerTableLayout implements LayoutManager2 {
     public static final int scoreHeight = 250;
     public static final int helperWidth = 360;
     public static final int helperHeight = 120;
+    public static final int bigHelperWidth = 440;
+    public static final int bigHelperHeight = 150;
     public static final int passWidth = 146;
     public static final int passHeight = 66;
 
@@ -56,13 +57,11 @@ public class PokerTableLayout implements LayoutManager2 {
     Component[] clocks = new Component[4];
     Component cornerClock;
 
-    Component helperLabel;
-    Component helperBackground;
-
+    Component helper;
+    Component bigHelper;
     Component scoreboard;
 
     Component passLabel;
-    Component passBackground;
 
     Component[][] arrows = new Component[4][4];
 
@@ -106,12 +105,10 @@ public class PokerTableLayout implements LayoutManager2 {
                 throw new IllegalArgumentException("cannot add to layout: constraint \"" + name + "\" not identified");
         } else if (SBOARD.equals(name)) {
             scoreboard = comp;
-        } else if (HBG.equals(name)) {
-            helperBackground = comp;
-        } else if (HLABEL.equals(name)) {
-            helperLabel = comp;
-        } else if (PBG.equals(name)) {
-            passBackground = comp;
+        } else if (HELPER.equals(name)) {
+            helper = comp;
+        } else if (BHELPER.equals(name)) {
+            bigHelper = comp;
         } else if (PLABEL.equals(name)) {
             passLabel = comp;
         } else if (name.startsWith(ARROW)) {
@@ -231,20 +228,14 @@ public class PokerTableLayout implements LayoutManager2 {
                 }
             }
 
-            if (helperBackground != null) {
-                helperBackground.setBounds((width - helperWidth) / 2, (height - helperHeight) / 2, helperWidth,
-                        helperHeight);
-                target.setComponentZOrder(helperBackground, zorder--);
+            if (helper != null) {
+                helper.setBounds((width - helperWidth) / 2, (height - helperHeight) / 2, helperWidth, helperHeight);
+                target.setComponentZOrder(helper, zorder--);
             }
-            if (helperLabel != null) {
-                helperLabel.setBounds((width - helperWidth) / 2, (height - helperHeight) / 2, helperWidth,
-                        helperHeight);
-                target.setComponentZOrder(helperLabel, zorder--);
-            }
-
-            if (passBackground != null) {
-                passBackground.setBounds((width - passWidth) / 2, (height - passHeight) / 2, passWidth, passHeight);
-                target.setComponentZOrder(passBackground, zorder--);
+            if (bigHelper != null) {
+                bigHelper.setBounds((width - bigHelperWidth) / 2, (height - bigHelperHeight) / 2, bigHelperWidth,
+                        bigHelperHeight);
+                target.setComponentZOrder(bigHelper, zorder--);
             }
             if (passLabel != null) {
                 passLabel.setBounds((width - passWidth) / 2, (height - passHeight) / 2, passWidth, passHeight);

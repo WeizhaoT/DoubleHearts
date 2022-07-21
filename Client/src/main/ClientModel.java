@@ -52,7 +52,7 @@ public class ClientModel {
                 serverMessage = in.readLine();
 
             final String[] items = serverMessage.split(ClientController.RECV_DELIM);
-            if (!items[1].equals("ADD") && ClientController.TEST_MODE)
+            if (!items[1].equals("ADD") && ClientController.TEST_MODE >= 1)
                 System.err.println("From Server: " + serverMessage);
         } catch (final SocketException e) {
             if (e.getMessage().contains("Connection reset")) {

@@ -9,6 +9,9 @@ import main.ClientController;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
+import java.util.stream.IntStream;
+
 import javax.swing.*;
 
 public class AssetPanel extends JPanel {
@@ -18,9 +21,6 @@ public class AssetPanel extends JPanel {
     private static final int h_ = PokerGameLayout.asseth;
 
     private static final int symbolw = 16;
-    private static final int emojiw = 28;
-    private static final int emojiRealw = 18;
-    private static final int symbolWidew = 32;
     private static final int insetScale = 5;
     private static final int symbYOffset = 0;
     private static final int litgap = 10;
@@ -29,6 +29,9 @@ public class AssetPanel extends JPanel {
     private static final int lith = 5 * texth + 2 * insetScale;
     private static final int y0 = (h_ - texth - lith - litgap) / 2;
     private static final int lity = y0 + litgap + texth;
+    private static final int exposureGap = 6;
+    private static final int exposureOverflow = 30;
+    private static final int exposureSymbolYOffset = -3;
 
     private static final int heartx = 66;
 
@@ -46,14 +49,13 @@ public class AssetPanel extends JPanel {
     private JLabel spadeSymbol;
     private JLabel diamondSymbol;
     private JLabel clubSymbol;
-    private JLabel doubleSymbol1;
-    private JLabel doubleSymbol2;
+    private JLabel exposureSymbol;
 
     private JLabel heartAssetLiterals;
     private JLabel spadeAssetLiterals;
     private JLabel diamondAssetLiterals;
     private JLabel clubAssetLiterals;
-    private JLabel doubleLiterals;
+    private JLabel exposureLiterals;
 
     private final ArrayList<Card> assets;
 
@@ -63,7 +65,7 @@ public class AssetPanel extends JPanel {
         setPreferredSize(new Dimension(w_, h_));
         setBackground(MyColors.tableGreen);
 
-        if (ClientController.TEST_MODE)
+        if (ClientController.TEST_MODE >= 2)
             setBorder(BorderFactory.createLineBorder(MyColors.green));
 
         scoreLabel = new JLabel("", SwingConstants.CENTER);
@@ -154,26 +156,20 @@ public class AssetPanel extends JPanel {
         splitLabel.setBorder(BorderFactory.createLineBorder(MyColors.tableGreen, 5));
         literalPanel.add(splitLabel);
 
-        doubleSymbol1 = new JLabel("<html><font face=\"Arial\">\ud83d\uddf2 </font></html>");
-        doubleSymbol1.setName("symb_2x_1");
-        doubleSymbol1.setForeground(MyColors.darkYellow);
-        setAxis(doubleSymbol1, 0, asseth, emojiw);
-        literalPanel.add(doubleSymbol1);
+        exposureSymbol = new JLabel("\u2600");
+        exposureSymbol.setForeground(MyColors.quadrupled);
+        exposureSymbol.setFont(new Font(Font.MONOSPACED, Font.BOLD, (int) MyFont.Size.asset));
+        setAxis(exposureSymbol, 0, asseth + exposureSymbolYOffset, symbolw + exposureOverflow, texth);
+        literalPanel.add(exposureSymbol);
 
-        doubleSymbol2 = new JLabel("\u00d72");
-        doubleSymbol2.setName("symb_2x_2");
-        doubleSymbol2.setForeground(MyColors.darkYellow);
-        setAxis(doubleSymbol2, emojiRealw, asseth, symbolWidew);
-        literalPanel.add(doubleSymbol2);
-
-        doubleLiterals = new JLabel("");
-        setAxis(doubleLiterals, symbolWidew + emojiRealw, asseth, textw - symbolWidew - emojiRealw);
-        literalPanel.add(doubleLiterals);
+        exposureLiterals = new JLabel("");
+        setAxis(exposureLiterals, symbolw + exposureGap, asseth, textw - symbolw + exposureOverflow);
+        literalPanel.add(exposureLiterals);
 
         for (final Component comp : literalPanel.getComponents()) {
             if (comp.getName() != null && comp.getName().contains("symb_"))
                 comp.setFont(MyFont.assetSymb);
-            else
+            else if (comp != exposureSymbol)
                 comp.setFont(MyFont.asset);
 
             ((JLabel) comp).setVerticalAlignment(JLabel.TOP);
@@ -189,23 +185,24 @@ public class AssetPanel extends JPanel {
         diamondAssetLiterals.setText("");
         spadeAssetLiterals.setText("");
         heartAssetLiterals.setText("");
-        doubleLiterals.setText("");
+        exposureLiterals.setText("");
 
         showChanges();
     }
 
     private void fillEverything() {
+        String[] postfixes = new String[] { "", "x", "z" };
         for (final String rank : ranks) {
-            addAsset(rank + "H");
-            addAsset(rank + "H");
+            addAsset(rank + "H" + postfixes[(new Random()).nextInt(3)]);
+            addAsset(rank + "H" + postfixes[(new Random()).nextInt(3)]);
         }
-        addAsset("TC");
-        addAsset("TC");
-        addAsset("JD");
-        addAsset("JD");
-        addAsset("QS");
-        addAsset("QSx");
-        setShown(new String[] { "QSx", "QSx", "JDx", "JDx", "TCx", "TCx" });
+        addAsset(Card.TRANS + postfixes[(new Random()).nextInt(3)]);
+        addAsset(Card.TRANS + postfixes[(new Random()).nextInt(3)]);
+        addAsset(Card.SHEEP + postfixes[(new Random()).nextInt(3)]);
+        addAsset(Card.SHEEP + postfixes[(new Random()).nextInt(3)]);
+        addAsset(Card.PIG + postfixes[(new Random()).nextInt(3)]);
+        addAsset(Card.PIG + postfixes[(new Random()).nextInt(3)]);
+        setExposed(new String[] { "QSz", "QSz", "JDx", "JDx", "TCx", "TCx", "AH", "AH" });
     }
 
     private void setAxis(final JLabel item, final int x, int y, final int... scale) {
@@ -222,27 +219,32 @@ public class AssetPanel extends JPanel {
         showChanges();
     }
 
-    public void setShown(final String[] aliases) {
+    public void setExposed(final String[] aliases) {
         if (aliases.length == 0) {
-            doubleLiterals.setText("");
+            exposureLiterals.setText("");
             return;
         }
 
-        int nc = 0, nd = 0, ns = 0;
+        final String space = "<font size=\"2\"> </font>";
+
+        int nc = 0, nd = 0, ns = 0, nh = 0;
         for (final String alias : aliases) {
-            if ("TCx".equals(alias))
+            if (alias.startsWith(Card.TRANS))
                 nc++;
-            else if ("JDx".equals(alias))
+            else if (alias.startsWith(Card.SHEEP))
                 nd++;
-            else if ("QSx".equals(alias))
+            else if (alias.startsWith(Card.PIG))
                 ns++;
+            else if (alias.startsWith(Card.ACEH))
+                nh++;
         }
 
-        final String clubs = nc == 0 ? "" : getColoredLiteral("C", 0, nc, true) + " ";
-        final String diamonds = nd == 0 ? "" : getColoredLiteral("D", 0, nd, true) + " ";
-        final String spades = ns == 0 ? "" : getColoredLiteral("S", 0, ns, true);
+        final String clubs = nc == 0 ? "" : getColoredLiteral("C", nc, true) + space;
+        final String diamonds = nd == 0 ? "" : getColoredLiteral("D", nd, true) + space;
+        final String spades = ns == 0 ? "" : getColoredLiteral("S", ns, true) + space;
+        final String hearts = nh == 0 ? "" : getColoredLiteral("H", nh, true);
 
-        doubleLiterals.setText("<html>" + clubs + diamonds + spades + "</html>");
+        exposureLiterals.setText("<html>" + clubs + diamonds + spades + hearts + "</html>");
     }
 
     public int getScore() {
@@ -254,72 +256,66 @@ public class AssetPanel extends JPanel {
     }
 
     private int updatePanel(final int numDecks) {
-        int heartScore = 0;
-        int pigScore = 0;
+        int total = 0;
+        int heartScore = 0, pigScore = 0, sheepScore = 0, transScore = 0;
 
-        int numTrans = 0, numTransx = 0;
-        int numSheep = 0, numSheepx = 0;
-        int numPig = 0, numPigx = 0;
+        int numTrans[] = new int[] { 0, 0, 0 };
+        int numSheep[] = new int[] { 0, 0, 0 };
+        int numPig[] = new int[] { 0, 0, 0 };
 
         int numHearts = 0;
 
         final int assetSize = assets.size();
 
         final HashMap<String, Integer> heartHist = new HashMap<>();
+        final ArrayList<Card> transformers = new ArrayList<>();
 
         for (final Card card : assets) {
             if (card.isHeart()) {
-                numHearts += 1;
+                numHearts++;
                 heartScore += card.value();
-                heartHist.compute(card.alias().substring(0, 1), (k, v) -> v == null ? 1 : v + 1);
+                heartHist.compute(card.fullAlias(), (k, v) -> v == null ? 1 : v + 1);
             } else if (card.isPig()) {
-                if (card.exposed)
-                    numPigx += 1;
-                else
-                    numPig += 1;
+                numPig[card.exposed]++;
+                pigScore += card.value();
             } else if (card.isSheep()) {
-                if (card.exposed)
-                    numSheepx += 1;
-                else
-                    numSheep += 1;
+                numSheep[card.exposed]++;
+                sheepScore += card.value();
             } else if (card.isTransformer()) {
-                if (card.exposed)
-                    numTransx += 1;
-                else
-                    numTrans += 1;
+                transScore += card.value();
+                transformers.add(card);
+                numTrans[card.exposed]++;
             }
         }
 
-        clubAssetLiterals.setText(getColoredLiteral("C", numTransx, numTrans));
-        diamondAssetLiterals.setText(getColoredLiteral("D", numSheepx, numSheep));
-        spadeAssetLiterals.setText(getColoredLiteral("S", numPigx, numPig));
+        clubAssetLiterals.setText(getColoredLiteral("C", numTrans));
+        diamondAssetLiterals.setText(getColoredLiteral("D", numSheep));
+        spadeAssetLiterals.setText(getColoredLiteral("S", numPig));
         heartAssetLiterals.setText(getHeartLiteral(heartHist));
 
         if (assetSize == 0)
             return 0;
-        if (assetSize == numTrans + numTransx)
-            return numTrans * 50 + numTransx * 100;
-
-        pigScore = -numPig * 100 - numPigx * 200;
+        if (assetSize == IntStream.of(numTrans).sum())
+            return transScore;
 
         if (numHearts == 13 * numDecks) {
             heartScore = -heartScore;
             pigScore = assetSize == 16 * numDecks ? -pigScore : pigScore;
         }
 
-        heartScore += pigScore + numSheep * 100 + numSheepx * 200;
-        heartScore <<= (numTrans + numTransx * 2);
-
-        showChanges();
-        return heartScore;
+        total = (int) Math.round((heartScore + pigScore + sheepScore) * Card.getMult(transformers));
+        return total;
     }
 
-    private String getColoredLiteral(final String suit, final int nSpecial, final int nNormal) {
-        return getColoredLiteral(suit, nSpecial, nNormal, false);
+    private static String getColoredLiteral(final String suit, final int num, final boolean withSymbol) {
+        return getColoredLiteral(suit, new int[] { num, 0, 0 }, withSymbol);
     }
 
-    private String getColoredLiteral(final String suit, final int nSpecial, final int nNormal,
-            final boolean withSymbol) {
+    private static String getColoredLiteral(final String suit, final int[] nums) {
+        return getColoredLiteral(suit, nums, false);
+    }
+
+    private static String getColoredLiteral(final String suit, final int[] nums, final boolean withSymbol) {
         String orig, symb;
         Color color;
 
@@ -331,33 +327,43 @@ public class AssetPanel extends JPanel {
             orig = "J";
             symb = "\u2666";
             color = MyColors.diamondColor;
-        } else {
+        } else if (suit.equals("C")) {
             orig = "T";
             symb = "\u2663";
             color = MyColors.clubColor;
+        } else {
+            orig = "A";
+            symb = "\u2665";
+            color = MyColors.heartColor;
         }
 
-        final String special = MyColors.getColoredText(orig.repeat(nSpecial), MyColors.pink);
-        final String normal = MyColors.getColoredText(orig.repeat(nNormal), color);
+        final String quadrupled = MyColors.getColoredText(orig.repeat(nums[2]), MyColors.quadrupled);
+        final String doubled = MyColors.getColoredText(orig.repeat(nums[1]), MyColors.doubled);
+        final String normal = MyColors.getColoredText(orig.repeat(nums[0]), color);
 
         if (withSymbol)
-            return MyColors.getColoredText(symb + orig.repeat(nNormal), color);
+            return MyColors.getColoredText(symb + orig.repeat(nums[0]), color);
         else
-            return "<html>" + normal + special + "</html>";
+            return "<html>" + normal + doubled + quadrupled + "</html>";
     }
 
     private String getHeartLiteral(final HashMap<String, Integer> heartHist) {
         final ArrayList<String> literals = new ArrayList<>();
 
         for (final String rank : ranks) {
-            if (!heartHist.containsKey(rank))
-                continue;
+            String literal = "";
+            Integer count;
 
-            final int count = heartHist.get(rank);
-            literals.add(rank.repeat(count));
+            for (String postfix : new String[] { "", "x", "z" }) {
+                if ((count = heartHist.get(rank + "H" + postfix)) != null) {
+                    literal += MyColors.getColoredText(rank.repeat(count), postfix == "" ? MyColors.heartColor
+                            : postfix == "x" ? MyColors.doubled : MyColors.quadrupled);
+                }
+            }
+            if (!literal.isBlank())
+                literals.add(literal);
         }
-
-        return "<html>" + MyColors.getColoredText(String.join(" ", literals), MyColors.heartColor) + "</html>";
+        return "<html>" + String.join(" ", literals) + "</html>";
     }
 
     public void showChanges() {
@@ -365,5 +371,4 @@ public class AssetPanel extends JPanel {
         repaint();
         setVisible(true);
     }
-
 }

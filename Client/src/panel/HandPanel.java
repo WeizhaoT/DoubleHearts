@@ -9,6 +9,7 @@ import layout.PokerGameLayout;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.swing.*;
 
@@ -44,12 +45,12 @@ public class HandPanel extends JPanel implements ActionListener {
 
     private MouseAdapter mouseAdapter;
 
-    private HashMap<MaskedCard, Card> cardMap;
-    private HashMap<Card, MaskedCard> cardObjMap;
+    private final HashMap<MaskedCard, Card> cardMap = new HashMap<>();
+    private final HashMap<Card, MaskedCard> cardObjMap = new HashMap<>();
 
-    private ArrayList<Card> cards;
-    private HashSet<Card> selectedCards;
-    private ArrayList<Card> leadSet = null;
+    private final ArrayList<Card> cards = new ArrayList<>();
+    private final HashSet<Card> drawn = new HashSet<>();
+    private final ArrayList<Card> leadSet = new ArrayList<>();
 
     private boolean mouseControl;
     private boolean firstRound;
@@ -70,18 +71,13 @@ public class HandPanel extends JPanel implements ActionListener {
      *
      * @param controller Client GUI controller
      */
-
     public HandPanel(final ClientController controller, final ClientView view) {
         this.controller = controller;
         this.view = view;
-        cardMap = new HashMap<>();
-        cardObjMap = new HashMap<>();
-        cards = new ArrayList<>();
-        selectedCards = new HashSet<>();
         mouseControl = false;
         firstRound = false;
 
-        if (ClientController.TEST_MODE)
+        if (ClientController.TEST_MODE >= 2)
             setBorder(BorderFactory.createLineBorder(Color.PINK));
 
         mouseAdapter = new MouseAdapter() {
@@ -96,7 +92,7 @@ public class HandPanel extends JPanel implements ActionListener {
                     return;
                 }
 
-                synchronized (selectedCards) {
+                synchronized (drawn) {
                     final MaskedCard cardObj = (MaskedCard) e.getComponent();
                     if (cardObj != null) {
                         final int cardy = cardObj.getY();
@@ -117,9 +113,8 @@ public class HandPanel extends JPanel implements ActionListener {
     }
 
     private void setupHandPanel() {
-        setOpaque(false);
-        setPreferredSize(new Dimension(w_, h_));
         setLayout(null);
+        setOpaque(false);
 
         final JPanel userButtonsPanel = new JPanel(null);
         userButtonsPanel.setOpaque(false);
@@ -149,7 +144,6 @@ public class HandPanel extends JPanel implements ActionListener {
     /**
      * Sets up the action listeners.
      */
-
     private void setupActionListeners() {
         midButton.addActionListener(this);
         seeLastRoundButton.addActionListener(this);
@@ -158,15 +152,12 @@ public class HandPanel extends JPanel implements ActionListener {
     public void reset() {
         enableMouseControl(false);
 
-        for (final MaskedCard cardObj : cardMap.keySet()) {
-            cardsPanel.remove(cardObj);
-        }
-
+        cardMap.keySet().forEach(c -> cardsPanel.remove(c));
         cardMap.clear();
         cardObjMap.clear();
         cards.clear();
-        selectedCards.clear();
-        leadSet = null;
+        drawn.clear();
+        leadSet.clear();
 
         disableMidButton();
         enableSeeLastRoundButton(false);
@@ -176,14 +167,13 @@ public class HandPanel extends JPanel implements ActionListener {
     /**
      * Shows changes made to the panel.
      */
-
     private void showChanges() {
         revalidate();
         repaint();
         setVisible(true);
     }
 
-    public void setNumDealingCards(int num) {
+    public void setNumDealingCards(final int num) {
         numDealingCards = num;
     }
 
@@ -210,8 +200,7 @@ public class HandPanel extends JPanel implements ActionListener {
 
     public void tradeIn(final String[] cardAliases) {
         synchronized (cards) {
-            int i = 0;
-            final MaskedCard[] newCardPanels = new MaskedCard[cardAliases.length];
+            final ArrayList<MaskedCard> newCardObjs = new ArrayList<>();
             for (final String alias : cardAliases) {
                 final Card newCard = new Card(alias);
                 final MaskedCard cardObj = new MaskedCard(alias);
@@ -221,18 +210,16 @@ public class HandPanel extends JPanel implements ActionListener {
                 cardMap.put(cardObj, newCard);
                 cardObjMap.put(newCard, cardObj);
 
-                newCardPanels[i++] = cardObj;
+                newCardObjs.add(cardObj);
 
-                selectedCards.add(newCard);
+                drawn.add(newCard);
                 cards.add(newCard);
             }
             cards.sort(new Card.CardComparator());
             repositionCards();
 
             putAllCards();
-            for (final MaskedCard cardObj : newCardPanels) {
-                drawCard(cardObj);
-            }
+            newCardObjs.forEach(c -> drawCard(c));
             updateButton();
             updateFeasibleCard();
             enableMouseControl(true);
@@ -242,9 +229,9 @@ public class HandPanel extends JPanel implements ActionListener {
 
     public void removeSelected() {
         synchronized (cards) {
-            cards.removeAll(selectedCards);
+            cards.removeAll(drawn);
 
-            for (final Card card : selectedCards) {
+            for (final Card card : drawn) {
                 final MaskedCard cardObj = cardObjMap.remove(card);
                 cardMap.remove(cardObj);
                 cardObj.removeMouseListener(mouseAdapter);
@@ -258,7 +245,7 @@ public class HandPanel extends JPanel implements ActionListener {
     }
 
     private HashSet<Card> getHintFeasible() {
-        return Card.getHintFeasible(cards, leadSet, selectedCards, firstRound);
+        return Card.getHintFeasible(cards, leadSet, drawn, firstRound);
     }
 
     private HashSet<Card> getNoSelectFeasible() {
@@ -266,58 +253,43 @@ public class HandPanel extends JPanel implements ActionListener {
     }
 
     private HashSet<Card> getExclFeasible() {
-        return Card.getFeasible(cards, leadSet, selectedCards, firstRound);
+        return Card.getFeasible(cards, leadSet, drawn, firstRound);
     }
 
     private int checkPlayRule() {
-        final int numSelected = selectedCards.size();
+        final int numSelected = drawn.size();
 
         if (numSelected > 2) {
             return MyText.CARD_NUM_EXCESS;
         }
 
-        if (leadSet != null && numSelected != leadSet.size()) {
+        if (!leadSet.isEmpty() && numSelected != leadSet.size()) {
             return MyText.CARD_NUM_MISMATCH;
         }
 
-        if (leadSet == null) {
-            if (firstRound) {
-                for (final Card card : selectedCards) {
-                    if (!card.weakEquals("2C")) {
-                        return MyText.ILLEGAL_FIRST_LEAD;
+        if (leadSet.isEmpty()) {
+            if (firstRound && drawn.stream().anyMatch(c -> !c.weakEquals(Card.OPENER)))
+                return MyText.ILLEGAL_FIRST_LEAD;
 
-                    }
-                }
-            } else if (numSelected == 2 && !Card.isPair(selectedCards)) {
+            if (!firstRound && numSelected == 2 && !Card.isPair(drawn))
                 return MyText.ILLEGAL_DOUBLE_LEAD;
-
-            }
         } else {
-            final HashSet<Card.Rank> suitRanks = new HashSet<>();
-            final Card.Suit leadingSuit = leadSet.get(0).suit();
-            boolean discard = false;
+            final Card.Suit leadSuit = leadSet.get(0).suit();
 
-            for (final Card card : selectedCards) {
-                if (firstRound && card.forbiddenInFirstRound())
-                    return MyText.BANNED_FIRST_ROUND_FOLLOW;
-
-                if (card.suit() != leadingSuit) {
-                    discard = true;
-                    break;
-                }
-            }
-
-            if (!discard && (numSelected == 1 || (numSelected == 2 && Card.isPair(selectedCards))))
+            boolean discard = drawn.stream().anyMatch(c -> c.suit() != leadSuit);
+            if (!discard && (numSelected == 1 || (numSelected == 2 && Card.isPair(drawn))))
                 return MyText.NORMAL;
 
-            for (final Card card : cards) {
-                if (card.suit() != leadingSuit)
-                    continue;
+            boolean containsForbidden = firstRound && drawn.stream().anyMatch(c -> c.scoringInRound1());
+            if (containsForbidden && cards.stream().filter(c -> !drawn.contains(c)).anyMatch(c -> !c.scoringInRound1()))
+                return MyText.BANNED_FIRST_ROUND_FOLLOW;
 
-                if (discard && !selectedCards.contains(card))
-                    return MyText.ILLEGAL_DISCARD;
+            if (discard && cards.stream().anyMatch(c -> c.suit() == leadSuit && !drawn.contains(c)))
+                return MyText.ILLEGAL_DISCARD;
 
-                if (numSelected == 2) {
+            if (numSelected == 2) {
+                final HashSet<Card.Rank> suitRanks = new HashSet<>();
+                for (final Card card : cards.stream().filter(c -> c.suit() == leadSuit).collect(Collectors.toList())) {
                     if (suitRanks.contains(card.rank()))
                         return MyText.ILLEGAL_PAIR_FOLLOW;
 
@@ -329,7 +301,7 @@ public class HandPanel extends JPanel implements ActionListener {
     }
 
     private int checkExposeRule() {
-        for (final Card card : selectedCards) {
+        for (final Card card : drawn) {
             if (!card.isExposable()) {
                 return MyText.ILLEGAL_SHOWING;
             }
@@ -338,7 +310,7 @@ public class HandPanel extends JPanel implements ActionListener {
     }
 
     private int checkTradeRule() {
-        return selectedCards.size() == nTrade ? MyText.NORMAL : MyText.TRADE_NUM_MISMATCH;
+        return drawn.size() == nTrade ? MyText.NORMAL : MyText.TRADE_NUM_MISMATCH;
     }
 
     public void setMaskMode(final String mode) {
@@ -355,31 +327,23 @@ public class HandPanel extends JPanel implements ActionListener {
             setMaxNCardsFeasible();
         } else {
             final HashSet<Card> feasible = getHintFeasible();
-            for (final MaskedCard cardObj : cardMap.keySet()) {
-                cardObj.setLightened(feasible.contains(cardMap.get(cardObj)));
-            }
+            cardMap.entrySet().forEach(c -> c.getKey().setLightened(feasible.contains(c.getValue())));
         }
     }
 
     private void setAllCardsFeasible() {
-        for (final MaskedCard cardObj : cardMap.keySet()) {
-            cardObj.setLightened(true);
-        }
+        cardMap.keySet().forEach(c -> c.setLightened(true));
     }
 
     private void setShowablesFeasible() {
-        for (final Card card : cardObjMap.keySet()) {
-            cardObjMap.get(card).setLightened(card.isExposable());
-        }
+        cardMap.entrySet().forEach(e -> e.getKey().setLightened(e.getValue().isExposable()));
     }
 
     private void setMaxNCardsFeasible() {
-        if (selectedCards.size() < nTrade) {
+        if (drawn.size() < nTrade) {
             setAllCardsFeasible();
         } else {
-            for (final Card card : cardObjMap.keySet()) {
-                cardObjMap.get(card).setLightened(selectedCards.contains(card));
-            }
+            cardMap.entrySet().forEach(e -> e.getKey().setLightened(drawn.contains(e.getValue())));
         }
     }
 
@@ -436,13 +400,9 @@ public class HandPanel extends JPanel implements ActionListener {
     }
 
     public void setLeadCards(final String[] cardAliases) {
-        if (cardAliases == null || cardAliases.length == 0) {
-            leadSet = null;
-        } else {
-            leadSet = new ArrayList<>();
-            for (final String alias : cardAliases) {
-                leadSet.add(new Card(alias));
-            }
+        leadSet.clear();
+        if (cardAliases != null && cardAliases.length > 0) {
+            Arrays.asList(cardAliases).forEach(ca -> leadSet.add(new Card(ca)));
         }
     }
 
@@ -455,10 +415,10 @@ public class HandPanel extends JPanel implements ActionListener {
         drawCard(card, false);
     }
 
-    private void drawCard(final Card card, boolean update) {
+    private void drawCard(final Card card, final boolean update) {
         final MaskedCard cardObj = cardObjMap.get(card);
         cardObj.setLocation(cardObj.getX(), handGap);
-        selectedCards.add(card);
+        drawn.add(card);
 
         if (update) {
             updateButton();
@@ -470,10 +430,10 @@ public class HandPanel extends JPanel implements ActionListener {
         putCard(card, true);
     }
 
-    private void putCard(final Card card, boolean update) {
+    private void putCard(final Card card, final boolean update) {
         final MaskedCard cardObj = cardObjMap.get(card);
         cardObj.setLocation(cardObj.getX(), cardUp);
-        selectedCards.remove(card);
+        drawn.remove(card);
 
         if (update) {
             updateButton();
@@ -489,8 +449,8 @@ public class HandPanel extends JPanel implements ActionListener {
         updateFeasibleCard();
     }
 
-    private void putAllCards() {
-        final Card[] cardArr = selectedCards.toArray(new Card[0]);
+    public void putAllCards() {
+        final Card[] cardArr = drawn.toArray(new Card[0]);
         for (final Card card : cardArr) {
             putCard(card, false);
         }
@@ -500,11 +460,11 @@ public class HandPanel extends JPanel implements ActionListener {
 
     private void updateButton() {
         if (buttonMode == ButtonMode.PLAY) {
-            midButton.setEnabled(selectedCards.size() > 0);
+            midButton.setEnabled(drawn.size() > 0);
         } else if (buttonMode == ButtonMode.EXPOSE) {
-            midButton.setText(MyText.getButtonLabel(selectedCards.size() > 0 ? "EXPOSE" : "PASS"));
+            midButton.setText(MyText.getButtonLabel(drawn.size() > 0 ? "EXPOSE" : "PASS"));
         } else if (buttonMode == ButtonMode.TRADE) {
-            midButton.setEnabled(selectedCards.size() == nTrade);
+            midButton.setEnabled(drawn.size() == nTrade);
         }
     }
 
@@ -520,13 +480,9 @@ public class HandPanel extends JPanel implements ActionListener {
         }
     }
 
-    public void confirmExposedCards() {
-        for (final Card card : selectedCards) {
-            final MaskedCard cardObj = cardObjMap.get(card);
-            card.exposeCard();
-            cardObj.setIlluminate(true);
-        }
-        putAllCards();
+    public synchronized void applyExposure(final String[] exposed) {
+        MaskedCard.upgradeEffects(exposed, cards, cardMap.keySet());
+        // putAllCards();
         showChanges();
     }
 
@@ -550,7 +506,7 @@ public class HandPanel extends JPanel implements ActionListener {
      * @return {@code true} if executed; {@code false} if skipped
      */
     public boolean autoFollowLastRound() {
-        if (leadSet != null && cards.size() == leadSet.size() && buttonMode == ButtonMode.PLAY) {
+        if (!leadSet.isEmpty() && cards.size() == leadSet.size() && buttonMode == ButtonMode.PLAY) {
             drawAllCards();
             midButton.doClick();
             return true;
@@ -559,15 +515,15 @@ public class HandPanel extends JPanel implements ActionListener {
     }
 
     public void autoChooseOnlyOption() {
-        int numLead = leadSet == null ? 1 : leadSet.size();
+        final int numLead = leadSet.isEmpty() ? 1 : leadSet.size();
 
         final HashSet<Card> feasibleCards = getNoSelectFeasible();
 
         if (numLead >= feasibleCards.size()) {
-            putAllCards();
-            for (final Card card : feasibleCards) {
-                drawCard(card);
-            }
+            if (numLead == feasibleCards.size())
+                putAllCards();
+
+            feasibleCards.stream().forEach(c -> drawCard(c));
         }
     }
 
@@ -587,10 +543,10 @@ public class HandPanel extends JPanel implements ActionListener {
                 drawCard(cardsCopy.get(i));
             }
         } else if (buttonMode == ButtonMode.PLAY) {
-            final int numPlay = leadSet == null ? 1 : leadSet.size();
+            final int numPlay = leadSet.isEmpty() ? 1 : leadSet.size();
 
             putAllCards();
-            while (selectedCards.size() < numPlay) {
+            while (drawn.size() < numPlay) {
                 final Card[] feasibles = getExclFeasible().toArray(new Card[0]);
                 drawCard(feasibles[(new Random()).nextInt(feasibles.length)]);
             }
@@ -611,7 +567,23 @@ public class HandPanel extends JPanel implements ActionListener {
         return cards.isEmpty();
     }
 
+    public int[] checkExposables() {
+        int[] flags = { 0, 0, 0, 0 };
+        for (Card card : cards) {
+            if (card.isTransformer())
+                flags[0] = 1;
+            else if (card.isSheep())
+                flags[1] = 1;
+            else if (card.isPig())
+                flags[2] = 1;
+            else if (card.weakEquals(Card.ACEH))
+                flags[3] = 1;
+        }
+        return flags;
+    }
+
     private boolean executeMidButtonPressed() {
+        boolean errMsgSet = false;
         int errCode = MyText.NORMAL;
         switch (buttonMode) {
             case PLAY:
@@ -619,8 +591,8 @@ public class HandPanel extends JPanel implements ActionListener {
                     disableMidButton();
                     removeSelected();
                     setMaskMode("ALL");
-                    controller.sendToServer("PLAY", Card.concatCards(ClientController.SEND_DELIM, selectedCards));
-                    selectedCards.clear();
+                    controller.sendToServer("PLAY", Card.concatCards(ClientController.SEND_DELIM, drawn));
+                    drawn.clear();
                 }
                 break;
             case READY:
@@ -631,27 +603,31 @@ public class HandPanel extends JPanel implements ActionListener {
                     disableMidButton();
                     removeSelected();
                     enableMouseControl(false);
-                    controller.sendToServer("TRADE", Card.concatCards(ClientController.SEND_DELIM, selectedCards));
-                    selectedCards.clear();
+                    controller.sendToServer("TRADE", Card.concatCards(ClientController.SEND_DELIM, drawn));
+                    drawn.clear();
                 }
                 break;
             case EXPOSE:
-                if (selectedCards.isEmpty() || (errCode = checkExposeRule()) == MyText.NORMAL) {
+                if (drawn.isEmpty() || (errCode = checkExposeRule()) == MyText.NORMAL) {
                     disableMidButton();
-                    if (selectedCards.isEmpty())
+                    if (drawn.isEmpty())
                         controller.sendToServer("SHOW");
                     else {
-                        controller.sendToServer("SHOW", Card.concatCards(ClientController.SEND_DELIM, selectedCards));
+                        controller.sendToServer("SHOW", Card.concatCards(ClientController.SEND_DELIM, drawn));
                         view.setPlayErrMsg(MyText.NORMAL);
                     }
                     enableMouseControl(false);
+                } else {
+                    view.setPlayErrMsg(errCode, checkExposables());
+                    errMsgSet = true;
                 }
                 break;
             default:
                 System.err.println("Warning: pressing button at NONE mode");
                 errCode = -1;
         }
-        view.setPlayErrMsg(errCode);
+        if (!errMsgSet)
+            view.setPlayErrMsg(errCode);
         if (errCode > 0)
             putAllCards();
 

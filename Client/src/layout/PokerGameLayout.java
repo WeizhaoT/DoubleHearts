@@ -17,6 +17,7 @@ public class PokerGameLayout implements LayoutManager2 {
     public static final String[] ALLASSETS = new String[] { SASSET, EASSET, NASSET, WASSET };
 
     public static final String RULE = "RULE";
+    public static final String LEGEND = "LEGEND";
     public static final String SPEAKER = "SPEAKER";
     public static final String HAND = "HAND";
     public static final String CENTER = "CENTER";
@@ -41,9 +42,9 @@ public class PokerGameLayout implements LayoutManager2 {
     public static final int minCenterh = PokerTableLayout.minHeight;
     public static final float avtGrowth = 0.4f;
 
-    public static final int minToph = Math.max(minAvth, asseth);
+    public static final int minToph = Math.max(Math.max(minAvth, asseth), ruleh);
     public static final int minBottomh = Math.max(minToph, handh);
-    public static final int leftw = Math.max(avtw, assetw);
+    public static final int leftw = Math.max(Math.max(avtw, assetw), rulew);
     public static final int rightw = Math.max(avtw, assetw);
 
     public static final int minHeight = minToph + minBottomh + PokerTableLayout.minHeight;
@@ -60,6 +61,7 @@ public class PokerGameLayout implements LayoutManager2 {
     Component westAsset;
 
     Component rule;
+    Component legend;
     Component speaker;
 
     Component hand;
@@ -123,6 +125,9 @@ public class PokerGameLayout implements LayoutManager2 {
                 return;
             case RULE:
                 rule = comp;
+                return;
+            case LEGEND:
+                legend = comp;
                 return;
             case SPEAKER:
                 speaker = comp;
@@ -222,6 +227,10 @@ public class PokerGameLayout implements LayoutManager2 {
             if (rule != null) {
                 rule.setBounds(cleft, top + (toph - ruleh) / 2, rulew, ruleh);
                 target.setComponentZOrder(rule, zorder--);
+            }
+            if (legend != null) {
+                legend.setBounds(left + (leftw - rulew) / 2, top + (toph - ruleh) / 2, rulew, ruleh);
+                target.setComponentZOrder(legend, zorder--);
             }
             if (speaker != null) {
                 speaker.setBounds(right - speakerw, top, speakerw, speakerh);

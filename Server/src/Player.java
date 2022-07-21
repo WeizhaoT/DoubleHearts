@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
+import java.util.stream.*;
 
 /**
  * A player object represents a player in Double Hearts.
@@ -9,9 +10,9 @@ import java.util.*;
  */
 
 public class Player implements Runnable {
-    private static final String timeLimitTrade = "45";
-    private static final String timeLimitShow = "20";
-    private static final String timeLimitPlay = "40";
+    private static final String timeLimitTrade = "-1";
+    private static final String timeLimitShow = "-1";
+    private static final String timeLimitPlay = "-1";
 
     private final Table table; // table to join
     private BufferedReader in; // in to client
@@ -72,7 +73,8 @@ public class Player implements Runnable {
 
     @Override
     public void run() {
-        sendToClient("WELCOME");
+        sendToClient("WELCOME", String.valueOf(Card.baseScore), String.format("%.1f", Card.MULT_EXP),
+                String.format("%.1f", Card.MULT_GET));
 
         main = Thread.currentThread();
         assets = new Asset();
@@ -122,7 +124,7 @@ public class Player implements Runnable {
             System.err.println("From Client: " + seatIndex + " \"" + name + "\": " + String.join(", ", items));
 
         if (!status.toString().equals(items[1])) {
-            System.err.println("Warning: improbable message under status " + status);
+            System.err.println("Warning: improbable message \"" + items[1] + "\" under status " + status);
         }
 
         switch (items[1]) {
@@ -157,10 +159,7 @@ public class Player implements Runnable {
                 tradeLatch.countDown();
                 break;
             case "SHOW":
-                for (int i = 2; i < items.length; i++)
-                    items[i] += "x";
-
-                table.broadcastShown(seatIndex, getSubStrArray(items, 2));
+                table.broadcastExposed(seatIndex, getSubStrArray(items, 2));
                 cardLatch.reset();
                 showLatch.countDown();
                 break;
@@ -304,14 +303,7 @@ public class Player implements Runnable {
         if (!msgs[0].equals("ADD") && Server.TEST_MODE)
             System.err.println("To Client " + seatIndex + " \"" + name + "\": " + String.join(", ", msgs));
 
-        final ArrayList<String> filteredMsgs = new ArrayList<>();
-
-        for (final String msg : msgs) {
-            if (msg.length() > 0)
-                filteredMsgs.add(msg);
-        }
-
-        final String output = Server.SEND_PREFIX + Server.SEND_DELIM + String.join(Server.SEND_DELIM, filteredMsgs);
-        out.println(output);
+        out.println(Stream.concat(Stream.of(Server.SEND_PREFIX), Arrays.asList(msgs).stream()).filter(m -> !m.isEmpty())
+                .collect(Collectors.joining(Server.SEND_DELIM)));
     }
 }

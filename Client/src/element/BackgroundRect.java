@@ -18,9 +18,9 @@ public class BackgroundRect extends JPanel {
     private static final int alpha = 200;
 
     /** width of the rectangle */
-    private final int w_;
+    protected int w_;
     /** height of the rectangle */
-    private final int h_;
+    protected int h_;
 
     /** full-opaque color with no alpha dimension */
     private final Color textBGOpaque = MyColors.gray;
@@ -54,6 +54,13 @@ public class BackgroundRect extends JPanel {
             textBG = new Color(textBG.getRed(), textBG.getGreen(), textBG.getBlue(), alpha);
     }
 
+    public void rescale(int w, int h) {
+        w_ = w;
+        h_ = h;
+        revalidate();
+        repaint();
+    }
+
     /**
      * Set bounds of rectangle, omitting width and height.
      * 
@@ -62,6 +69,12 @@ public class BackgroundRect extends JPanel {
      */
     public void setBounds(final int x, final int y) {
         setBounds(x, y, w_, h_);
+    }
+
+    public void setBounds(final int x, final int y, final int w, final int h) {
+        super.setBounds(x, y, w_ = w, h_ = h);
+        revalidate();
+        repaint();
     }
 
     /**

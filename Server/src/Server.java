@@ -27,7 +27,6 @@ public class Server {
      *
      * @param serverPort Server port
      */
-
     public Server(final int serverPort) {
         this.serverPort = serverPort;
     }
@@ -84,7 +83,8 @@ public class Server {
             try {
                 argument = args[i + 1];
             } catch (final ArrayIndexOutOfBoundsException e) {
-                System.err.println("Options: [-p serverPort] [-d numDecks]");
+                System.err.println(
+                        "Options: [-p serverPort] [-b baseScore] [-e exposureMult] [-g obtainingMult] [-d numDecks]");
                 System.exit(1);
             }
             switch (option) {
@@ -119,8 +119,42 @@ public class Server {
                         System.exit(1);
                     }
                     break;
+                case "-b":
+                    try {
+                        Card.baseScore = Integer.parseInt(argument);
+                        if (Card.baseScore <= 0) {
+                            throw new NumberFormatException();
+                        }
+                    } catch (final NumberFormatException e) {
+                        System.err.println("Base score must be a positive int");
+                        System.exit(1);
+                    }
+                    break;
+                case "-e":
+                    try {
+                        Card.MULT_EXP = Double.parseDouble(argument);
+                        if (Card.MULT_EXP <= 0) {
+                            throw new NumberFormatException();
+                        }
+                    } catch (final NumberFormatException e) {
+                        System.err.println("Exposure multiplier must be a positive floating point number");
+                        System.exit(1);
+                    }
+                    break;
+                case "-g":
+                    try {
+                        Card.MULT_GET = Double.parseDouble(argument);
+                        if (Card.MULT_GET <= 0) {
+                            throw new NumberFormatException();
+                        }
+                    } catch (final NumberFormatException e) {
+                        System.err.println("Obtaining multiplier must be a positive floating point number");
+                        System.exit(1);
+                    }
+                    break;
                 default:
-                    System.err.println("Options: [-p serverPort] [-d numDecks]");
+                    System.err.println(
+                            "Options: [-p serverPort] [-b baseScore] [-e exposureMult] [-g obtainingMult] [-d numDecks]");
                     System.exit(1);
                     break;
             }

@@ -1,8 +1,8 @@
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.*;
 
 /**
  * Table objects represent a table that players can join.
@@ -27,7 +27,8 @@ public class Table implements Runnable {
     private final String[] names;
 
     private final AtomicBoolean[] isReady = new AtomicBoolean[4];
-    private final AtomicInteger numShown = new AtomicInteger(0);
+    private final ConcurrentHashMap<String, Integer> numCardsExposed = new ConcurrentHashMap<>();
+    private final AtomicInteger numPlayersShown = new AtomicInteger(0);
 
     public String[][] tradeOut;
 
@@ -91,9 +92,12 @@ public class Table implements Runnable {
     /**
      * Sets the table up for a new round of Blackjack.
      */
-
     public void initAll() {
         tradeOut = new String[4][tradeSize];
+
+        for (String exposable : Card.exposables)
+            numCardsExposed.put(exposable, 0);
+
         for (int i = 0; i < 4; i++)
             totalScore[i] = new AtomicInteger(0);
 
@@ -111,8 +115,11 @@ public class Table implements Runnable {
         waitingForReady = true;
         resetReady();
         resetLatches();
-        numShown.set(0);
+        numPlayersShown.set(0);
         tradeOut = new String[4][tradeSize];
+        for (String exposable : Card.exposables)
+            numCardsExposed.put(exposable, 0);
+
         for (final Player player : table)
             player.frameEndingLatchCountDown();
     }
@@ -159,7 +166,7 @@ public class Table implements Runnable {
             for (int i = 0; i < 4; i++) {
                 final int target = Math.floorMod(i + tradeGap, 4);
                 for (final String cardAlias : tradeOut[i]) {
-                    if ("2C".equals(cardAlias)) {
+                    if (Card.OPENER.equals(cardAlias)) {
                         twoClubHolders[i]--;
                         twoClubHolders[target]++;
                     }
@@ -175,7 +182,7 @@ public class Table implements Runnable {
             player.framePlayingLatchCountDown();
         }
 
-        if (numShown.get() > 0)
+        if (numPlayersShown.get() > 0)
             Thread.sleep(endShowingDelay);
 
         final int roundLeader = pickLeader(twoClubHolders);
@@ -199,7 +206,7 @@ public class Table implements Runnable {
         final int[] leaders = new int[] { 0, 0, 0, 0 };
 
         while ((nextCard = shoe.dealCard()) != null) {
-            if (nextCard.weakEquals("2C") && i < numberOfDecks) {
+            if (nextCard.weakEquals(Card.OPENER) && i < numberOfDecks) {
                 leaders[starter]++;
             }
 
@@ -210,10 +217,7 @@ public class Table implements Runnable {
     }
 
     private int pickLeader(final int[] twoClubHolders) {
-        int sum = 0;
-        for (int c : twoClubHolders)
-            sum += c;
-
+        int sum = IntStream.of(twoClubHolders).sum();
         int randi = (new Random()).nextInt(sum);
 
         for (int i = 0; i < twoClubHolders.length; i++) {
@@ -225,10 +229,13 @@ public class Table implements Runnable {
     }
 
     private void playInTurns(int cardsRemain, int leader) throws IOException, InterruptedException {
+        final ArrayList<ArrayList<Card>> cardSeq = new ArrayList<>();
+        final ArrayList<Card> asset = new ArrayList<>();
+
         while (cardsRemain > 0) {
             int roundSize = 0;
-            final ArrayList<ArrayList<Card>> cardSeq = new ArrayList<>();
-            final ArrayList<Card> asset = new ArrayList<>();
+            cardSeq.clear();
+            asset.clear();
 
             for (int turned = 0; turned < 4; turned++) {
                 final int iPlayer = (leader + turned) % 4;
@@ -247,13 +254,7 @@ public class Table implements Runnable {
             }
 
             leader = Card.roundResult(cardSeq, leader);
-            for (final ArrayList<Card> cards : cardSeq) {
-                for (final Card card : cards) {
-                    if (card.isValuable())
-                        asset.add(card);
-                }
-            }
-
+            cardSeq.forEach(s -> s.stream().filter(c -> c.isScored()).forEach(c -> asset.add(c)));
             seats[leader].addAsset(asset);
             Thread.sleep(lastRoundDelay);
             broadcastAsset(leader, asset);
@@ -295,9 +296,7 @@ public class Table implements Runnable {
             names[seat] = new String(name);
             playerThreads[seat] = threadMap.get(player);
 
-            for (final Player player2 : table)
-                player2.sendSeating(seat, avtIndex, name);
-
+            table.forEach(p -> p.sendSeating(seat, avtIndex, name));
             return true;
         }
     }
@@ -375,13 +374,22 @@ public class Table implements Runnable {
         }
     }
 
-    public void broadcastShown(final int seat, final String[] cardAliases) {
-        if (cardAliases != null && cardAliases.length != 0) {
-            numShown.incrementAndGet();
-        }
-        synchronized (seats) {
+    public void broadcastExposed(final int seat, final String[] cardAliases) {
+        synchronized (numCardsExposed) {
+            if (cardAliases != null && cardAliases.length != 0) {
+                numPlayersShown.incrementAndGet();
+            }
+
+            for (int i = 0; i < cardAliases.length; i++) {
+                String shortAlias = cardAliases[i].substring(0, 2);
+                cardAliases[i] = shortAlias + (numCardsExposed.get(shortAlias) == 0 ? "" : "x");
+            }
+
             for (final Player player : seats)
                 player.sendShown(seat, cardAliases);
+
+            for (String alias : cardAliases)
+                numCardsExposed.compute(alias.substring(0, 2), (k, v) -> v == null ? 1 : v + 1);
         }
     }
 
@@ -429,11 +437,7 @@ public class Table implements Runnable {
     }
 
     public String getTotalScore() {
-        final String[] scoreLiterals = new String[totalScore.length];
-        for (int i = 0; i < totalScore.length; i++)
-            scoreLiterals[i] = String.valueOf(totalScore[i].get());
-
-        return String.join(Server.SEND_DELIM, scoreLiterals);
+        return Arrays.asList(totalScore).stream().map(s -> s.toString()).collect(Collectors.joining(Server.SEND_DELIM));
     }
 
     public int getTradeGap() {
